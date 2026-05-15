@@ -109,18 +109,18 @@ export default function DocumentViewer({
 
       {/* Document Content Card */}
       <Card className="paper-card p-8 md:p-12">
-        <div className="doc-output prose prose-sm max-w-none">
+        <div className="doc-output max-w-none">
           <Streamdown>{content}</Streamdown>
         </div>
 
         {/* Footer Disclaimer */}
         <div className="mt-12 pt-8 border-t border-border">
-          <p className="text-xs text-muted-foreground italic leading-relaxed">
+          <div className="text-xs text-muted-foreground italic leading-relaxed">
             This document is an AI-generated template provided for informational purposes only.
             It is not a substitute for professional legal advice. Always have a qualified attorney
             review any legal document before use. The Repo Scribe assumes no liability for the use
             or misuse of this generated content.
-          </p>
+          </div>
         </div>
       </Card>
     </div>
