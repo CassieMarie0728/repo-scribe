@@ -35,7 +35,13 @@ export default function Header() {
         {/* Navigation */}
         <nav className="flex items-center gap-6">
           {user ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate("/history")}
+                className="text-xs text-foreground hover:text-accent transition-colors"
+              >
+                History
+              </button>
               <span className="text-xs text-muted-foreground">{user.name}</span>
               <Button
                 onClick={handleLogout}
