@@ -7,17 +7,18 @@
   ],
   "dev_command": "pnpm run dev",
   "env_vars": {
-    "DATABASE_URL": "mysql://4FqcGxnziQHjRdw.root:sMp5VyRM4CZx3eQD1c13@gateway06.us-east-1.prod.aws.tidbcloud.com:4000/ZFecqhGeKcso9Cb9Guc5N4?ssl={\"rejectUnauthorized\":true}"
+    "DATABASE_URL": "mysql://4FqcGxnziQHjRdw.root:sMp5VyRM4CZx3eQD1c13@gateway06.us-east-1.prod.aws.tidbcloud.com:4000/ZFecqhGeKcso9Cb9Guc5N4?ssl={\"rejectUnauthorized\":true}",
+    "DRIZZLE_DATABASE_URL": "mysql://4FqcGxnziQHjRdw.root:sMp5VyRM4CZx3eQD1c13@gateway06.us-east-1.prod.aws.tidbcloud.com:4000/ZFecqhGeKcso9Cb9Guc5N4?ssl={\"rejectUnauthorized\":true}"
   },
   "experiments": [
     "no_db_push"
   ],
   "git_remote": {
     "repo_url": "s3://vida-prod-gitrepo/webdev-git/310519663501812446/ZFecqhGeKcso9Cb9Guc5N4",
-    "access_key_id": "ASIAZV3A2ECZL6L2PBNT",
-    "secret_access_key": "EbXBHciIMyASmeJwEXTrS3uTnTGF5qVNwbgRgCPn",
-    "session_token": "IQoJb3JpZ2luX2VjELj//////////wEaCXVzLWVhc3QtMSJHMEUCIQCOfiB+wIVJ76IY+nGyi3HvWKEGk3CX0sfHLPOT4hhqtgIgBU1Xufl5G2iyiMGSjSLQZv81pGf18zSdD3nR/CLSkjQq/wMIgP//////////ARAEGgw2NjUzODYwOTg4NjYiDILH/u7DCslBSuz2YirTA5RyDsAIdsSXkSbcWChyafz7ZUVFqupI0vesqcpY4vNkroJt0I9Sse2ROT9luAH/IQPYuoUsy4mHzatHmNQvZ5hBznOEnXLzL0dBAa+DqeeUuvKPLrQbbZpkYebK4gd3A2IKDkF6V2Ey2yoNeU+yT8QO/yfXp9XXDoB+eWi5nkxqmkf4wq+NBWjKBHPlSbv7UhkOR0yqapxHfU9dC02pkWKttT5K9GO//PgJdkyPmb2Cs52ERShhO3aKUDCqYC0fBGLr2GRARJepV0kDbsGlVJleNWPRtBdO38hftGPlOfAuHOKFdBAZSGTe4AIyr90flMblJn0qBnLZHyWf/l8/K94IeOsS9KZHg6WMw5Gs+H8CREygbeY2O+UochzzG/ipkN1DUqs/Y1EvKsY17eRhEBdjUhdDo3UOqeRQdCWeRcJRlRZ07zs2263x5FIhsYChsQg5RpPDz6aGpTHBNLcCYTYXioFm+llkH/GSZs0fEv1bl5i5mUmzMiX2EC9wiMcfjZI5wqbAAph1vPWa6uPSBzxDFbV8sPTe6b4YvufZRRZkX369Tr/60RRqKRp9Pm0cRQ44cereV8Larrt2hNpSXwRNJy22vsRETWBKVy24jkrZ/jgDMP7TntAGOp0BIfOphO6A0P9t5UJxaJ05mV1A+/ia0eGtvOuBUrf3K59jC1k+yYqPZAfryacZAugQJEm3UASKjljJ++T+oSo9ogmm7q5+KqhwBp5dy87bUTHhldLLOJosjK82fIXmFeelMU/G+KY9ElvNW0fDQJqFSkYidaz+k77hI+KhaKejZD3Pe1ykF1bnM6VTe7x+8D2EBT/9zT0HcEs0YT0eJQ==",
-    "expiration": "2026-05-16T11:19:26.000Z"
+    "access_key_id": "ASIAZV3A2ECZO6R6CK5T",
+    "secret_access_key": "VTWg1lH1Jcn2prsny5hY1eFH1osc8PyL0qHxl6is",
+    "session_token": "IQoJb3JpZ2luX2VjELj//////////wEaCXVzLWVhc3QtMSJHMEUCIQCCfa/pnThhmFlx/Vei7QTp3tbSGfeV4PMqhkwwLL7/fgIgIURSJxDiQJnJRCYomeBcKU3hOeVbkCiY7yZU/lgroT8q/wMIgf//////////ARAEGgw2NjUzODYwOTg4NjYiDGPF8G/RIbCaZPbJHirTA61WJaZP2UZMxKcCoCS0f4Nwn9hXbfwpGgKH6eCdC5LULALjHQ2M0fOoyPOYN7XXbn4GDjWY42IUbuRxuzd3zAu31lJqvD1p/E7P3eVsPHX2WxOWYih9V37VtJAmTXwrpRqXq1KHI1sGtbP6FjC/w6qAVrtts2sPAhVVH00Rw1rByOCPifbrAXdqOhAFW8M3jrBtLjLCOAquF1Subfcl0/bgIIio22xX8W9PH9QnM11p2w3PxTPNJuZSHscpF4glAQcfnWldpbN03UwYd75MlRdJCGmI4gj3qnWa9oMZ9ucT9lvTHdGj85/z42recHbIgUoroz7laP9Bk5PEVDlasUUxZHUoA4WevI+vE2xa7NUr+g3bL+c+xy2b2YVkrSx9eLpoisZQHh9BjWBGcs1jv1Lbu9zwGkV31+LPXX4uzMzgLWSn6dWSxTKgd8Dnyr9TUvVWfm5Rwax7hv+HH0a8o+VUZmI7IYlgOi6d6E1zJO72MuGFhGKnS75uHpJjqBiVZbb7PyQjeGM30tCxnHE1GIrVX0MFL98K8rSldjlh4hg7+u8hkez6dXaUMndAzgxAk7Wntb+eB0gxd2rx3BY0eXnpuEp1fTxP73RqsbbCTTNyPvUQMNXWntAGOp0BgpSkFUK4wKF53uwcSVjAxp6PcHOizSCUuvKiit7sDn7igx8qsjJZPjCegl5N2EIQskkkHeK1eDi2LduHZuUdJF+2/ZbKu3AmpLmRpYz4S/MBgrB97UxGAL3NRgEwx39dCA/ZafA6fhCX/rvNEIo3InU/c3lzMx9+wl+Wl1qlXpWghvEDgZn6NmPEt1W9opQ5/4fNWI75Gw0qzL7ObQ==",
+    "expiration": "2026-05-16T11:25:09.000Z"
   },
   "name": "repo-scribe",
   "path": "/home/ubuntu/repo-scribe",
@@ -26,13 +27,14 @@
     "BUILT_IN_FORGE_API_KEY": "Rwd39SiX4uZDcQabatLC2t",
     "BUILT_IN_FORGE_API_URL": "https://forge.manus.ai",
     "JWT_SECRET": "Eqpvttaq9p4YqNPTvjeg5h",
+    "MISTRAL_API_KEY": "Tpm2OFi7sSSo4sL3ybNDmnJDVcloGa3Q",
     "OAUTH_SERVER_URL": "https://api.manus.im",
-    "OWNER_NAME": "cmn110960",
+    "OWNER_NAME": "Cass",
     "OWNER_OPEN_ID": "UQ2ezL2HrxeiJdYCvLen9t",
     "VITE_ANALYTICS_ENDPOINT": "https://manus-analytics.com",
     "VITE_ANALYTICS_WEBSITE_ID": "6b30a6ad-6d23-4d74-9660-5709640873ed",
     "VITE_APP_ID": "ZFecqhGeKcso9Cb9Guc5N4",
-    "VITE_APP_LOGO": "",
+    "VITE_APP_LOGO": "https://files.manuscdn.com/user_upload_by_module/web_dev_logo/310519663501812446/EyxqrdLROglXBvmj.png",
     "VITE_APP_TITLE": "The Repo Scribe",
     "VITE_FRONTEND_FORGE_API_KEY": "bJN4863QQ4ixBpJJkNYy4y",
     "VITE_FRONTEND_FORGE_API_URL": "https://forge.manus.ai",

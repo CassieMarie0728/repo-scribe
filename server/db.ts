@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, generations, InsertGeneration } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,38 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+export async function saveGeneration(generation: InsertGeneration): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot save generation: database not available");
+    return;
+  }
+
+  try {
+    await db.insert(generations).values(generation);
+  } catch (error) {
+    console.error("[Database] Failed to save generation:", error);
+    throw error;
+  }
+}
+
+export async function getUserGenerations(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get generations: database not available");
+    return [];
+  }
+
+  try {
+    const result = await db
+      .select()
+      .from(generations)
+      .where(eq(generations.userId, userId))
+      .orderBy(desc(generations.createdAt))
+      .limit(100);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get generations:", error);
+    return [];
+  }
+}

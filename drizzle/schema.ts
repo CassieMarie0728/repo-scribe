@@ -25,4 +25,21 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+/**
+ * Generations table for storing document generation history.
+ * Scoped per user to maintain privacy and enable history retrieval.
+ */
+export const generations = mysqlTable("generations", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  repoUrl: varchar("repoUrl", { length: 500 }).notNull(),
+  repoName: varchar("repoName", { length: 255 }),
+  docType: varchar("docType", { length: 64 }).notNull(),
+  tone: varchar("tone", { length: 64 }).notNull(),
+  length: varchar("length", { length: 64 }).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Generation = typeof generations.$inferSelect;
+export type InsertGeneration = typeof generations.$inferInsert;
