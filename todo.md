@@ -124,3 +124,38 @@
 - Modal displays parameter comparison (original vs new settings)
 - New generated version added to History as separate entry
 - Future: Add side-by-side document content comparison UI
+
+## Phase 16: Batch Regeneration Feature
+- [x] Create BatchRegenerateModal component with parameter selectors
+- [x] Add multi-select checkboxes to History items (already existed)
+- [x] Implement "Batch Regenerate" button that appears when items selected
+- [x] Add progress tracking UI during batch regeneration
+- [x] Create batch regeneration tRPC procedure
+- [x] Show summary of regenerated items with success/error status
+- [x] Add "Select All" and "Deselect All" quick actions (already existed)
+
+
+## Batch Regeneration Implementation Notes
+
+### Features Implemented
+- Modal-based batch regeneration with parameter selection (docType, tone, length)
+- Results summary showing success/failure counts with per-item status
+- Input validation: 1-50 items per batch, positive IDs only
+- Clear button for quick deselection of all items
+- State management fixes: isRegenerating properly reset after completion
+- Progress bar showing completion status
+
+### User Workflow
+1. Select multiple items in History using checkboxes
+2. Click "Batch Regenerate" button (appears when items selected)
+3. Modal opens with parameter selectors
+4. Choose new docType, tone, and length
+5. Click "Regenerate All" to start batch
+6. View results summary with success/failure status
+7. New versions added to History as separate entries
+
+### Key Design Decisions
+- Each item regenerated independently to handle partial failures gracefully
+- Results displayed in modal with scrollable list showing per-item status
+- Batch limited to 50 items to prevent timeout/resource exhaustion
+- Original documents preserved; new versions added as separate History entries

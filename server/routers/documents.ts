@@ -142,4 +142,65 @@ export const documentsRouter = router({
         throw new Error(error.message || "Failed to regenerate document");
       }
     }),
+
+  batchRegenerate: protectedProcedure
+    .input(
+      z.object({
+        generationIds: z.array(z.number().positive()).min(1).max(50),
+        docType: z.enum(DOC_TYPES),
+        tone: z.enum(TONES),
+        length: z.enum(LENGTHS),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      if (input.generationIds.length === 0) {
+        throw new Error("No generation IDs provided");
+      }
+      if (input.generationIds.length > 50) {
+        throw new Error("Cannot regenerate more than 50 documents at once");
+      }
+
+      const results = [];
+
+      for (const generationId of input.generationIds) {
+        try {
+          const [original] = await getGenerationsByIds([generationId], ctx.user.id);
+          if (!original) {
+            results.push({
+              id: generationId,
+              success: false,
+              error: "Generation not found",
+            });
+            continue;
+          }
+
+          const repoMetadata = await fetchRepoMetadata(original.repoUrl);
+
+          await generateDocument(
+            {
+              repoUrl: original.repoUrl,
+              docType: input.docType,
+              tone: input.tone,
+              length: input.length,
+              repoMetadata,
+            },
+            ctx.user.id
+          );
+
+          results.push({
+            id: generationId,
+            success: true,
+          });
+        } catch (error: any) {
+          console.error(`[Documents] Batch regeneration error for ID ${generationId}:`, error);
+          results.push({
+            id: generationId,
+            success: false,
+            error: error.message || "Failed to regenerate",
+          });
+        }
+      }
+
+      return { results };
+    }),
 });

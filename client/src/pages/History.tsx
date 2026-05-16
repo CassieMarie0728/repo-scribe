@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
-import { Copy, Download, Trash2, Package, RefreshCw } from "lucide-react";
+import { Copy, Download, Trash2, Package, RefreshCw, Zap } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
@@ -10,6 +10,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import RegenerateModal from "@/components/RegenerateModal";
+import BatchRegenerateModal from "@/components/BatchRegenerateModal";
 
 export default function History() {
   const { user } = useAuth();
@@ -21,6 +22,7 @@ export default function History() {
   const [isExporting, setIsExporting] = useState(false);
   const [regenerateOpen, setRegenerateOpen] = useState(false);
   const [selectedGeneration, setSelectedGeneration] = useState<any>(null);
+  const [batchRegenerateOpen, setBatchRegenerateOpen] = useState(false);
 
   const handleCopy = async (content: string) => {
     try {
@@ -168,16 +170,35 @@ export default function History() {
                   <span className="text-sm text-muted-foreground">
                     {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select all"}
                   </span>
+                  {selectedIds.size > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedIds(new Set())}
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Clear
+                    </Button>
+                  )}
                 </div>
                 {selectedIds.size > 0 && (
-                  <Button
-                    onClick={handleBulkExport}
-                    disabled={isExporting}
-                    className="flex items-center gap-2 bg-accent text-accent-foreground hover:opacity-90"
-                  >
-                    <Package className="w-4 h-4" />
-                    {isExporting ? "Exporting..." : `Export ${selectedIds.size} as ZIP`}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => setBatchRegenerateOpen(true)}
+                      className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700"
+                    >
+                      <Zap className="w-4 h-4" />
+                      Batch Regenerate
+                    </Button>
+                    <Button
+                      onClick={handleBulkExport}
+                      disabled={isExporting}
+                      className="flex items-center gap-2 bg-accent text-accent-foreground hover:opacity-90"
+                    >
+                      <Package className="w-4 h-4" />
+                      {isExporting ? "Exporting..." : `Export ${selectedIds.size} as ZIP`}
+                    </Button>
+                  </div>
                 )}
               </div>
             </Card>
@@ -266,6 +287,17 @@ export default function History() {
           onRegenerated={() => refetch()}
         />
       )}
+      <BatchRegenerateModal
+        open={batchRegenerateOpen}
+        onOpenChange={setBatchRegenerateOpen}
+        selectedCount={selectedIds.size}
+        generationIds={Array.from(selectedIds)}
+        onRegenerationComplete={() => {
+          refetch();
+          setSelectedIds(new Set());
+          setBatchRegenerateOpen(false);
+        }}
+      />
       <Footer />
     </>
   );
