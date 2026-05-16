@@ -74,7 +74,7 @@ function getToneDescription(tone: string): string {
 export async function generateDocument(
   input: GenerateDocumentInput,
   userId: number
-): Promise<{ content: string; metadata: any }> {
+): Promise<{ content: string; metadata: any; generationId: number }> {
   const validated = generateDocumentSchema.parse(input);
   const { repoUrl, docType, tone, length, repoMetadata } = validated;
 
@@ -133,8 +133,9 @@ Disclaimer: This is an AI-generated template. Have a qualified attorney review b
     const contentWithHeader = metadataHeader + content;
 
     // Save to database
+    let generationId = 0;
     if (content && typeof content === "string") {
-      await saveGeneration({
+      const result = await saveGeneration({
         userId,
         repoUrl,
         repoName: repoMetadata.name,
@@ -143,6 +144,7 @@ Disclaimer: This is an AI-generated template. Have a qualified attorney review b
         length,
         content: contentWithHeader,
       });
+      generationId = result?.id || 0;
     }
 
     return {
@@ -154,6 +156,7 @@ Disclaimer: This is an AI-generated template. Have a qualified attorney review b
         tone,
         length,
       },
+      generationId,
     };
   } catch (error: any) {
     console.error("[LLM] Generation failed:", error);

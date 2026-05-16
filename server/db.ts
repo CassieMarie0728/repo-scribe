@@ -89,15 +89,24 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function saveGeneration(generation: InsertGeneration): Promise<void> {
+export async function saveGeneration(generation: InsertGeneration): Promise<{ id: number } | null> {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot save generation: database not available");
-    return;
+    return null;
   }
 
   try {
-    await db.insert(generations).values(generation);
+    const result = await db.insert(generations).values(generation);
+    // Get the last inserted ID
+    const saved = await db
+      .select()
+      .from(generations)
+      .where(eq(generations.userId, generation.userId))
+      .orderBy(desc(generations.createdAt))
+      .limit(1);
+    
+    return saved.length > 0 ? { id: saved[0].id } : null;
   } catch (error) {
     console.error("[Database] Failed to save generation:", error);
     throw error;
