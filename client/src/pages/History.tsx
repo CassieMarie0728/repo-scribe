@@ -1,23 +1,26 @@
-import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
-import { Copy, Download, Trash2, Package } from "lucide-react";
+import { Copy, Download, Trash2, Package, RefreshCw } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import RegenerateModal from "@/components/RegenerateModal";
 
 export default function History() {
   const { user } = useAuth();
-  const { data: generations = [], isLoading } = trpc.documents.list.useQuery(
+  const { data: generations = [], isLoading, refetch } = trpc.documents.list.useQuery(
     undefined,
     { enabled: !!user }
   );
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isExporting, setIsExporting] = useState(false);
+  const [regenerateOpen, setRegenerateOpen] = useState(false);
+  const [selectedGeneration, setSelectedGeneration] = useState<any>(null);
 
   const handleCopy = async (content: string) => {
     try {
@@ -237,12 +240,32 @@ export default function History() {
                     <Download className="w-4 h-4" />
                     .txt
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedGeneration(gen);
+                      setRegenerateOpen(true);
+                    }}
+                    className="gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Regenerate
+                  </Button>
                 </div>
               </Card>
             ))}
           </div>
         </div>
       </div>
+      {selectedGeneration && (
+        <RegenerateModal
+          open={regenerateOpen}
+          onOpenChange={setRegenerateOpen}
+          generation={selectedGeneration}
+          onRegenerated={() => refetch()}
+        />
+      )}
       <Footer />
     </>
   );

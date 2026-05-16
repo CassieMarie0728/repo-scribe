@@ -106,4 +106,40 @@ export const documentsRouter = router({
         throw new Error(error.message || "Failed to export documents");
       }
     }),
+
+  regenerate: protectedProcedure
+    .input(
+      z.object({
+        generationId: z.number(),
+        docType: z.enum(DOC_TYPES),
+        tone: z.enum(TONES),
+        length: z.enum(LENGTHS),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const [original] = await getGenerationsByIds([input.generationId], ctx.user.id);
+        if (!original) {
+          throw new Error("Generation not found");
+        }
+
+        const repoMetadata = await fetchRepoMetadata(original.repoUrl);
+
+        const result = await generateDocument(
+          {
+            repoUrl: original.repoUrl,
+            docType: input.docType,
+            tone: input.tone,
+            length: input.length,
+            repoMetadata,
+          },
+          ctx.user.id
+        );
+
+        return result;
+      } catch (error: any) {
+        console.error("[Documents] Regeneration error:", error);
+        throw new Error(error.message || "Failed to regenerate document");
+      }
+    }),
 });

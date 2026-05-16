@@ -108,3 +108,19 @@
 - [x] Download ZIP file with all selected documents as ZIP archive
 - [x] Add select all/deselect all functionality
 - [x] Show selected count and export status
+
+## Phase 15: Regeneration with Tweaked Parameters
+- [x] Create RegenerateModal component with tone/length/docType selectors
+- [x] Add "Regenerate" button to each History item
+- [x] Implement regeneration tRPC procedure that reuses repo metadata
+- [x] Show loading state during regeneration
+- [x] Add new generated version to History without replacing original
+- [x] Display comparison between original and regenerated versions
+
+## Implementation Notes
+
+### Regeneration Feature
+- Regenerate procedure re-fetches repo metadata from GitHub (no URL re-entry required)
+- Modal displays parameter comparison (original vs new settings)
+- New generated version added to History as separate entry
+- Future: Add side-by-side document content comparison UI
