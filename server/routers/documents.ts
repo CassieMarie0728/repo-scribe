@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { generateDocument, fetchRepoMetadata } from "../lib/generate.functions";
-import { getUserGenerations } from "../db";
+import { getUserGenerations, updateGeneration, getGenerationsByIds } from "../db";
 
 const DOC_TYPES = [
   "README",
@@ -67,4 +67,43 @@ export const documentsRouter = router({
       return [];
     }
   }),
+
+  updateGeneration: protectedProcedure
+    .input(
+      z.object({
+        generationId: z.number(),
+        content: z.string(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      try {
+        await updateGeneration(input.generationId, ctx.user.id, input.content);
+        return { success: true };
+      } catch (error: any) {
+        console.error("[Documents] Update error:", error);
+        throw new Error(error.message || "Failed to update document");
+      }
+    }),
+
+  bulkExport: protectedProcedure
+    .input(
+      z.object({
+        generationIds: z.array(z.number()),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      try {
+        const generations = await getGenerationsByIds(input.generationIds, ctx.user.id);
+        return generations.map(g => ({
+          id: g.id,
+          docType: g.docType,
+          repoUrl: g.repoUrl,
+          content: g.content,
+          createdAt: g.createdAt,
+        }));
+      } catch (error: any) {
+        console.error("[Documents] Bulk export error:", error);
+        throw new Error(error.message || "Failed to export documents");
+      }
+    }),
 });

@@ -18,6 +18,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import LegalDisclaimer from "@/components/LegalDisclaimer";
 import DocumentViewer from "@/components/DocumentViewer";
+import EditableDocumentViewer from "@/components/EditableDocumentViewer";
 import { trpc } from "@/lib/trpc";
 import { z } from "zod";
 
@@ -46,6 +47,7 @@ export default function Generate() {
   const [length, setLength] = useState<(typeof LENGTHS)[number]>("medium");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<string | null>(null);
+  const [generationId, setGenerationId] = useState<number | null>(null);
   const [repoMetadata, setRepoMetadata] = useState<any>(null);
 
   const generateMutation = trpc.documents.generate.useMutation();
@@ -85,6 +87,7 @@ export default function Generate() {
 
       setGeneratedContent(result.content);
       setRepoMetadata(result.metadata);
+      setGenerationId(result.generationId);
       toast.success("Document generated successfully!");
     } catch (error: any) {
       toast.error(error.message || "Failed to generate document");
@@ -216,18 +219,35 @@ export default function Generate() {
               </div>
             </>
           ) : (
-            <DocumentViewer
-              content={generatedContent}
-              metadata={repoMetadata}
-              docType={docType}
-              tone={tone}
-              length={length}
-              onReset={() => {
-                setGeneratedContent(null);
-                setRepoUrl("");
-              }}
-            />
-          )}
+            generationId ? (
+              <EditableDocumentViewer
+                generationId={generationId}
+                content={generatedContent}
+                metadata={repoMetadata}
+                docType={docType}
+                tone={tone}
+                length={length}
+                onReset={() => {
+                  setGeneratedContent(null);
+                  setGenerationId(null);
+                  setRepoUrl("");
+                }}
+              />
+            ) : (
+              <DocumentViewer
+                content={generatedContent}
+                metadata={repoMetadata}
+                docType={docType}
+                tone={tone}
+                length={length}
+                onReset={() => {
+                  setGeneratedContent(null);
+                  setRepoUrl("");
+                }}
+              />
+            )
+          )
+        }
         </div>
       </main>
 

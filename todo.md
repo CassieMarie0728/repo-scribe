@@ -86,3 +86,25 @@
 - [x] Responsive design verified
 - [x] Vintage aesthetic fully implemented
 - [x] Project ready for deployment
+
+## Phase 12: Inline Document Editor
+- [x] Create EditableDocumentViewer component with toggle between view/edit modes
+- [x] Implement textarea for document editing with monospace font
+- [x] Add Save and Discard buttons with toast feedback
+- [x] Update database when document is saved
+- [x] Show unsaved changes indicator
+
+## Phase 13: Social Sharing
+- [x] Add email share button with mailto link
+- [x] Implement shareable link generation with query parameters
+- [x] Copy shareable link to clipboard functionality
+- [x] Add share button UI to EditableDocumentViewer
+- [x] Share buttons include email and shareable link copy
+
+## Phase 14: Bulk Export to ZIP
+- [x] Add checkboxes to History page for multi-select
+- [x] Implement "Export Selected" button
+- [x] Add JSZip library for client-side ZIP creation
+- [x] Download ZIP file with all selected documents as ZIP archive
+- [x] Add select all/deselect all functionality
+- [x] Show selected count and export status

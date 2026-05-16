@@ -124,3 +124,57 @@ export async function getUserGenerations(userId: number) {
     return [];
   }
 }
+
+export async function updateGeneration(generationId: number, userId: number, content: string): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update generation: database not available");
+    return;
+  }
+
+  try {
+    // Verify user owns this generation before updating
+    const generation = await db
+      .select()
+      .from(generations)
+      .where(eq(generations.id, generationId))
+      .limit(1);
+
+    if (!generation || generation.length === 0) {
+      throw new Error("Generation not found");
+    }
+
+    if (generation[0].userId !== userId) {
+      throw new Error("Unauthorized: you do not own this generation");
+    }
+
+    await db
+      .update(generations)
+      .set({ content })
+      .where(eq(generations.id, generationId));
+  } catch (error) {
+    console.error("[Database] Failed to update generation:", error);
+    throw error;
+  }
+}
+
+export async function getGenerationsByIds(generationIds: number[], userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get generations: database not available");
+    return [];
+  }
+
+  try {
+    const result = await db
+      .select()
+      .from(generations)
+      .where(eq(generations.userId, userId))
+      .limit(100);
+    
+    return result.filter(g => generationIds.includes(g.id));
+  } catch (error) {
+    console.error("[Database] Failed to get generations by ids:", error);
+    return [];
+  }
+}
