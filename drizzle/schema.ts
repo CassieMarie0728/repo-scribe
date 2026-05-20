@@ -69,3 +69,58 @@ export const exportTemplates = mysqlTable("exportTemplates", {
 
 export type ExportTemplate = typeof exportTemplates.$inferSelect;
 export type InsertExportTemplate = typeof exportTemplates.$inferInsert;
+
+
+/**
+ * Scheduled batch regeneration jobs table.
+ * Stores recurring regeneration schedules with cron expressions and execution history.
+ */
+export const scheduledJobs = mysqlTable("scheduledJobs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  // Comma-separated generation IDs to regenerate
+  generationIds: text("generationIds").notNull(),
+  // New parameters for regeneration
+  docType: varchar("docType", { length: 64 }).notNull(),
+  tone: varchar("tone", { length: 64 }).notNull(),
+  length: varchar("length", { length: 64 }).notNull(),
+  // Cron expression (e.g., "0 0 * * 0" for weekly Sunday midnight)
+  cronExpression: varchar("cronExpression", { length: 64 }).notNull(),
+  // Job status: active, paused, completed, failed
+  status: mysqlEnum("status", ["active", "paused", "completed", "failed"]).default("active").notNull(),
+  // Timestamps for scheduling
+  nextRun: timestamp("nextRun"),
+  lastRun: timestamp("lastRun"),
+  lastError: text("lastError"),
+  // Execution count
+  executionCount: int("executionCount").default(0).notNull(),
+  // Email notification settings
+  notifyOnSuccess: int("notifyOnSuccess").default(1).notNull(),
+  notifyOnFailure: int("notifyOnFailure").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ScheduledJob = typeof scheduledJobs.$inferSelect;
+export type InsertScheduledJob = typeof scheduledJobs.$inferInsert;
+
+/**
+ * Job execution history table for tracking job runs and debugging.
+ */
+export const jobExecutionHistory = mysqlTable("jobExecutionHistory", {
+  id: int("id").autoincrement().primaryKey(),
+  jobId: int("jobId").notNull(),
+  userId: int("userId").notNull(),
+  status: mysqlEnum("status", ["success", "failed", "partial"]).notNull(),
+  successCount: int("successCount").default(0).notNull(),
+  failureCount: int("failureCount").default(0).notNull(),
+  totalCount: int("totalCount").notNull(),
+  errorMessage: text("errorMessage"),
+  executedAt: timestamp("executedAt").defaultNow().notNull(),
+  completedAt: timestamp("completedAt"),
+});
+
+export type JobExecutionHistory = typeof jobExecutionHistory.$inferSelect;
+export type InsertJobExecutionHistory = typeof jobExecutionHistory.$inferInsert;

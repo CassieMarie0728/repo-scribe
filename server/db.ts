@@ -1,6 +1,6 @@
 import { eq, desc, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, generations, InsertGeneration, exportTemplates, InsertExportTemplate } from "../drizzle/schema";
+import { InsertUser, users, generations, InsertGeneration, exportTemplates, InsertExportTemplate, scheduledJobs, InsertScheduledJob, jobExecutionHistory, InsertJobExecutionHistory } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -363,5 +363,154 @@ export async function getDefaultTemplate(userId: number) {
   } catch (error) {
     console.error("[Database] Failed to get default template:", error);
     return undefined;
+  }
+}
+
+
+/**
+ * Scheduled jobs helpers
+ */
+export async function createScheduledJob(job: InsertScheduledJob) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot create job: database not available");
+    return undefined;
+  }
+
+  try {
+    await db.insert(scheduledJobs).values(job);
+    const saved = await db
+      .select()
+      .from(scheduledJobs)
+      .where(eq(scheduledJobs.userId, job.userId))
+      .orderBy(desc(scheduledJobs.createdAt))
+      .limit(1);
+    return saved.length > 0 ? saved[0] : undefined;
+  } catch (error) {
+    console.error("[Database] Failed to create job:", error);
+    throw error;
+  }
+}
+
+export async function getScheduledJobsByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get jobs: database not available");
+    return [];
+  }
+
+  try {
+    const result = await db
+      .select()
+      .from(scheduledJobs)
+      .where(eq(scheduledJobs.userId, userId))
+      .orderBy(desc(scheduledJobs.createdAt));
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get jobs:", error);
+    return [];
+  }
+}
+
+export async function getScheduledJobById(jobId: number, userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get job: database not available");
+    return undefined;
+  }
+
+  try {
+    const result = await db
+      .select()
+      .from(scheduledJobs)
+      .where(and(eq(scheduledJobs.id, jobId), eq(scheduledJobs.userId, userId)))
+      .limit(1);
+    return result.length > 0 ? result[0] : undefined;
+  } catch (error) {
+    console.error("[Database] Failed to get job:", error);
+    return undefined;
+  }
+}
+
+export async function updateScheduledJob(
+  jobId: number,
+  userId: number,
+  updates: Partial<InsertScheduledJob>
+) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update job: database not available");
+    return undefined;
+  }
+
+  try {
+    await db
+      .update(scheduledJobs)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(scheduledJobs.id, jobId), eq(scheduledJobs.userId, userId)));
+    return await getScheduledJobById(jobId, userId);
+  } catch (error) {
+    console.error("[Database] Failed to update job:", error);
+    throw error;
+  }
+}
+
+export async function deleteScheduledJob(jobId: number, userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot delete job: database not available");
+    return undefined;
+  }
+
+  try {
+    const result = await db
+      .delete(scheduledJobs)
+      .where(and(eq(scheduledJobs.id, jobId), eq(scheduledJobs.userId, userId)));
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to delete job:", error);
+    throw error;
+  }
+}
+
+export async function recordJobExecution(
+  execution: InsertJobExecutionHistory
+) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot record execution: database not available");
+    return undefined;
+  }
+
+  try {
+    const result = await db.insert(jobExecutionHistory).values(execution);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to record execution:", error);
+    throw error;
+  }
+}
+
+export async function getJobExecutionHistory(jobId: number, limit: number = 20) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get execution history: database not available");
+    return [];
+  }
+
+  try {
+    const result = await db
+      .select()
+      .from(jobExecutionHistory)
+      .where(eq(jobExecutionHistory.jobId, jobId))
+      .orderBy(desc(jobExecutionHistory.executedAt))
+      .limit(limit);
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get execution history:", error);
+    return [];
   }
 }

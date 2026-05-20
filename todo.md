@@ -159,3 +159,19 @@
 - Results displayed in modal with scrollable list showing per-item status
 - Batch limited to 50 items to prevent timeout/resource exhaustion
 - Original documents preserved; new versions added as separate History entries
+
+
+## Phase 17: Pre-Designed Template Library
+- [ ] Create 5 built-in templates (GitHub-Ready, Legal Review, Developer Friendly, Academic, Minimal)
+- [ ] Seed templates on first user login
+- [ ] Build UI to display and apply built-in templates
+- [ ] Allow users to duplicate built-in templates for customization
+- [ ] Add template preview/comparison view
+
+## Phase 18: Scheduled Batch Regeneration
+- [ ] Create database schema for scheduled jobs (scheduleId, userId, generationIds, parameters, cronExpression, nextRun, lastRun, status)
+- [ ] Build UI for creating scheduled regenerations with cron expression builder
+- [ ] Implement job execution engine with error handling and retry logic
+- [ ] Add email notification system for job completion/failure
+- [ ] Create job history and execution logs
+- [ ] Build management UI to view, pause, resume, and delete scheduled jobs
