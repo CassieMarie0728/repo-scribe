@@ -20,7 +20,7 @@ interface ExportMenuProps {
 
 export default function ExportMenu({ generationId, docType, disabled }: ExportMenuProps) {
   const [isExporting, setIsExporting] = useState(false);
-  const exportMutation = trpc.documents.export.useMutation();
+  const exportMutation = trpc.documents.exportGeneration.useMutation();
 
   const handleExport = async (format: "md" | "txt" | "pdf" | "docx" | "html") => {
     setIsExporting(true);
