@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Copy, Download, Edit2, Save, X, Share2 } from "lucide-react";
+import { Copy, Edit2, Save, X, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Streamdown } from "streamdown";
 import { trpc } from "@/lib/trpc";
+import ExportMenu from "./ExportMenu";
 
 interface EditableDocumentViewerProps {
   generationId: number;
@@ -146,24 +147,7 @@ export default function EditableDocumentViewer({
                 <Copy className="w-4 h-4" />
                 {copied ? "Copied!" : "Copy"}
               </Button>
-              <Button
-                onClick={() => handleDownload("md")}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Download .md
-              </Button>
-              <Button
-                onClick={() => handleDownload("txt")}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Download .txt
-              </Button>
+              <ExportMenu generationId={generationId} docType={sanitizedDocType} />
               <Button
                 onClick={handleShare}
                 variant="outline"

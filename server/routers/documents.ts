@@ -2,6 +2,7 @@ import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { generateDocument, fetchRepoMetadata } from "../lib/generate.functions";
 import { getUserGenerations, updateGeneration, getGenerationsByIds } from "../db";
+import { exportAsMarkdown, exportAsText, exportAsHTML, exportAsPDF, exportAsDocx, getMimeType, getFileExtension, type ExportFormat } from "../lib/export";
 
 const DOC_TYPES = [
   "README",
@@ -23,6 +24,7 @@ const TONES = [
 ] as const;
 
 const LENGTHS = ["short", "medium", "long"] as const;
+const EXPORT_FORMATS = ["md", "txt", "pdf", "docx", "html"] as const;
 
 export const documentsRouter = router({
   generate: protectedProcedure
@@ -202,5 +204,122 @@ export const documentsRouter = router({
       }
 
       return { results };
+    }),
+
+  export: protectedProcedure
+    .input(
+      z.object({
+        generationId: z.number(),
+        format: z.enum(EXPORT_FORMATS),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const [generation] = await getGenerationsByIds([input.generationId], ctx.user.id);
+        if (!generation) {
+          throw new Error("Generation not found");
+        }
+
+        let buffer: Buffer;
+        const exportOptions = {
+          content: generation.content,
+          filename: `${generation.docType}-${Date.now()}`,
+          title: generation.docType,
+          docType: generation.docType,
+          repoUrl: generation.repoUrl,
+          generatedAt: generation.createdAt,
+        };
+
+        switch (input.format) {
+          case "md":
+            buffer = exportAsMarkdown(exportOptions);
+            break;
+          case "txt":
+            buffer = exportAsText(exportOptions);
+            break;
+          case "html":
+            buffer = exportAsHTML(exportOptions);
+            break;
+          case "pdf":
+            buffer = await exportAsPDF(exportOptions);
+            break;
+          case "docx":
+            buffer = await exportAsDocx(exportOptions);
+            break;
+          default:
+            throw new Error(`Unsupported export format: ${input.format}`);
+        }
+
+        return {
+          data: buffer.toString("base64"),
+          mimeType: getMimeType(input.format),
+          extension: getFileExtension(input.format),
+        };
+      } catch (error: any) {
+        console.error("[Documents] Export error:", error);
+        throw new Error(error.message || "Failed to export document");
+      }
+    }),
+
+  exportBatch: protectedProcedure
+    .input(
+      z.object({
+        generationIds: z.array(z.number()),
+        format: z.enum(EXPORT_FORMATS),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const generations = await getGenerationsByIds(input.generationIds, ctx.user.id);
+        if (generations.length === 0) {
+          throw new Error("No generations found");
+        }
+
+        const exports = [];
+        for (const generation of generations) {
+          const exportOptions = {
+            content: generation.content,
+            filename: `${generation.docType}-${Date.now()}`,
+            title: generation.docType,
+            docType: generation.docType,
+            repoUrl: generation.repoUrl,
+            generatedAt: generation.createdAt,
+          };
+
+          let buffer: Buffer;
+          switch (input.format) {
+            case "md":
+              buffer = exportAsMarkdown(exportOptions);
+              break;
+            case "txt":
+              buffer = exportAsText(exportOptions);
+              break;
+            case "html":
+              buffer = exportAsHTML(exportOptions);
+              break;
+            case "pdf":
+              buffer = await exportAsPDF(exportOptions);
+              break;
+            case "docx":
+              buffer = await exportAsDocx(exportOptions);
+              break;
+            default:
+              throw new Error(`Unsupported export format: ${input.format}`);
+          }
+
+          exports.push({
+            filename: `${generation.docType}${getFileExtension(input.format)}`,
+            data: buffer.toString("base64"),
+          });
+        }
+
+        return {
+          exports,
+          mimeType: getMimeType(input.format),
+        };
+      } catch (error: any) {
+        console.error("[Documents] Batch export error:", error);
+        throw new Error(error.message || "Failed to export documents");
+      }
     }),
 });

@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Copy, Download } from "lucide-react";
+import { Copy } from "lucide-react";
 import { toast } from "sonner";
 import { Streamdown } from "streamdown";
+import ExportMenu from "./ExportMenu";
 
 interface DocumentViewerProps {
   content: string;
@@ -23,6 +24,7 @@ export default function DocumentViewer({
   onReset,
 }: DocumentViewerProps) {
   const [copied, setCopied] = useState(false);
+  const generationId = metadata?.id || 0;
 
   const sanitizedDocType = docType.replace(/_/g, "-").toLowerCase();
   const fullContent = content;
@@ -79,24 +81,7 @@ export default function DocumentViewer({
             <Copy className="w-4 h-4" />
             {copied ? "Copied!" : "Copy"}
           </Button>
-          <Button
-            onClick={() => handleDownload("md")}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Download .md
-          </Button>
-          <Button
-            onClick={() => handleDownload("txt")}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Download .txt
-          </Button>
+          <ExportMenu generationId={generationId} docType={sanitizedDocType} />
           <Button
             onClick={onReset}
             variant="outline"
