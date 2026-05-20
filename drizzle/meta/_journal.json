@@ -15,6 +15,13 @@
       "when": 1778887362176,
       "tag": "0001_flowery_weapon_omega",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1779242045422,
+      "tag": "0002_unique_goblin_queen",
+      "breakpoints": true
     }
   ]
 }

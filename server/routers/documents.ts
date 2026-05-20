@@ -206,7 +206,7 @@ export const documentsRouter = router({
       return { results };
     }),
 
-  export: protectedProcedure
+  exportGeneration: protectedProcedure
     .input(
       z.object({
         generationId: z.number(),

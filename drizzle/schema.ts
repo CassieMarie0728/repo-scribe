@@ -43,3 +43,29 @@ export const generations = mysqlTable("generations", {
 
 export type Generation = typeof generations.$inferSelect;
 export type InsertGeneration = typeof generations.$inferInsert;
+
+/**
+ * Export templates table for storing user-defined export formatting templates.
+ * Allows users to save and reuse export configurations.
+ */
+export const exportTemplates = mysqlTable("exportTemplates", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  isDefault: int("isDefault").default(0).notNull(),
+  headerText: text("headerText"),
+  footerText: text("footerText"),
+  includeMetadata: int("includeMetadata").default(1).notNull(),
+  includeTableOfContents: int("includeTableOfContents").default(0).notNull(),
+  fontSize: varchar("fontSize", { length: 32 }).default("normal"),
+  fontFamily: varchar("fontFamily", { length: 64 }).default("sans-serif"),
+  lineSpacing: varchar("lineSpacing", { length: 32 }).default("1.5"),
+  pageMargins: varchar("pageMargins", { length: 64 }).default("1in"),
+  colorScheme: varchar("colorScheme", { length: 64 }).default("default"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ExportTemplate = typeof exportTemplates.$inferSelect;
+export type InsertExportTemplate = typeof exportTemplates.$inferInsert;

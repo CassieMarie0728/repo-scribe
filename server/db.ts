@@ -1,6 +1,6 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, generations, InsertGeneration } from "../drizzle/schema";
+import { InsertUser, users, generations, InsertGeneration, exportTemplates, InsertExportTemplate } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -185,5 +185,183 @@ export async function getGenerationsByIds(generationIds: number[], userId: numbe
   } catch (error) {
     console.error("[Database] Failed to get generations by ids:", error);
     return [];
+  }
+}
+
+
+export async function getTemplatesByUserId(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get templates: database not available");
+    return [];
+  }
+
+  try {
+    const result = await db
+      .select()
+      .from(exportTemplates)
+      .where(eq(exportTemplates.userId, userId));
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to get templates:", error);
+    return [];
+  }
+}
+
+export async function getTemplateById(templateId: number, userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get template: database not available");
+    return undefined;
+  }
+
+  try {
+    const result = await db
+      .select()
+      .from(exportTemplates)
+      .where(
+        and(
+          eq(exportTemplates.id, templateId),
+          eq(exportTemplates.userId, userId)
+        )
+      )
+      .limit(1);
+    return result.length > 0 ? result[0] : undefined;
+  } catch (error) {
+    console.error("[Database] Failed to get template:", error);
+    return undefined;
+  }
+}
+
+export async function createTemplate(template: InsertExportTemplate) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot create template: database not available");
+    return undefined;
+  }
+
+  try {
+    await db.insert(exportTemplates).values(template);
+    const saved = await db
+      .select()
+      .from(exportTemplates)
+      .where(eq(exportTemplates.userId, template.userId))
+      .orderBy(desc(exportTemplates.createdAt))
+      .limit(1);
+    return saved.length > 0 ? saved[0] : undefined;
+  } catch (error) {
+    console.error("[Database] Failed to create template:", error);
+    throw error;
+  }
+}
+
+export async function updateTemplate(
+  templateId: number,
+  userId: number,
+  updates: Partial<InsertExportTemplate>
+) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot update template: database not available");
+    return undefined;
+  }
+
+  try {
+    await db
+      .update(exportTemplates)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(exportTemplates.id, templateId),
+          eq(exportTemplates.userId, userId)
+        )
+      );
+    return await getTemplateById(templateId, userId);
+  } catch (error) {
+    console.error("[Database] Failed to update template:", error);
+    throw error;
+  }
+}
+
+export async function deleteTemplate(templateId: number, userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot delete template: database not available");
+    return undefined;
+  }
+
+  try {
+    const result = await db
+      .delete(exportTemplates)
+      .where(
+        and(
+          eq(exportTemplates.id, templateId),
+          eq(exportTemplates.userId, userId)
+        )
+      );
+    return result;
+  } catch (error) {
+    console.error("[Database] Failed to delete template:", error);
+    throw error;
+  }
+}
+
+export async function setDefaultTemplate(
+  templateId: number,
+  userId: number
+) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot set default template: database not available");
+    return undefined;
+  }
+
+  try {
+    await db
+      .update(exportTemplates)
+      .set({ isDefault: 0 })
+      .where(eq(exportTemplates.userId, userId));
+
+    await db
+      .update(exportTemplates)
+      .set({ isDefault: 1 })
+      .where(
+        and(
+          eq(exportTemplates.id, templateId),
+          eq(exportTemplates.userId, userId)
+        )
+      );
+    return await getTemplateById(templateId, userId);
+  } catch (error) {
+    console.error("[Database] Failed to set default template:", error);
+    throw error;
+  }
+}
+
+export async function getDefaultTemplate(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get default template: database not available");
+    return undefined;
+  }
+
+  try {
+    const result = await db
+      .select()
+      .from(exportTemplates)
+      .where(
+        and(
+          eq(exportTemplates.userId, userId),
+          eq(exportTemplates.isDefault, 1)
+        )
+      )
+      .limit(1);
+    return result.length > 0 ? result[0] : undefined;
+  } catch (error) {
+    console.error("[Database] Failed to get default template:", error);
+    return undefined;
   }
 }
