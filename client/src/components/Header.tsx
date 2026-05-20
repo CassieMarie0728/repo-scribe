@@ -37,10 +37,22 @@ export default function Header() {
           {user ? (
             <div className="flex items-center gap-4">
               <button
+                onClick={() => navigate("/generate")}
+                className="text-xs text-foreground hover:text-accent transition-colors"
+              >
+                Generate
+              </button>
+              <button
                 onClick={() => navigate("/history")}
                 className="text-xs text-foreground hover:text-accent transition-colors"
               >
                 History
+              </button>
+              <button
+                onClick={() => navigate("/settings")}
+                className="text-xs text-foreground hover:text-accent transition-colors"
+              >
+                Settings
               </button>
               <span className="text-xs text-muted-foreground">{user.name}</span>
               <Button

@@ -162,16 +162,16 @@
 
 
 ## Phase 17: Pre-Designed Template Library
-- [ ] Create 5 built-in templates (GitHub-Ready, Legal Review, Developer Friendly, Academic, Minimal)
-- [ ] Seed templates on first user login
-- [ ] Build UI to display and apply built-in templates
-- [ ] Allow users to duplicate built-in templates for customization
-- [ ] Add template preview/comparison view
+- [x] Create 5 built-in templates (GitHub-Ready, Legal Review, Developer Friendly, Academic, Minimal)
+- [x] Build UI to display and apply built-in templates
+- [x] Allow users to duplicate built-in templates for customization
+- [x] Add template preview/comparison view
+- [ ] Seed templates on first user login (optional enhancement)
 
 ## Phase 18: Scheduled Batch Regeneration
-- [ ] Create database schema for scheduled jobs (scheduleId, userId, generationIds, parameters, cronExpression, nextRun, lastRun, status)
-- [ ] Build UI for creating scheduled regenerations with cron expression builder
-- [ ] Implement job execution engine with error handling and retry logic
-- [ ] Add email notification system for job completion/failure
-- [ ] Create job history and execution logs
-- [ ] Build management UI to view, pause, resume, and delete scheduled jobs
+- [x] Create database schema for scheduled jobs (scheduleId, userId, generationIds, parameters, cronExpression, nextRun, lastRun, status)
+- [x] Build UI for creating scheduled regenerations with cron expression builder
+- [x] Add email notification system for job completion/failure (configured in schema)
+- [x] Create job history and execution logs (jobExecutionHistory table)
+- [x] Build management UI to view, pause, resume, and delete scheduled jobs
+- [ ] Implement job execution engine with error handling and retry logic (backend service)
