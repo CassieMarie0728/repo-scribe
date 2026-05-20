@@ -36,6 +36,12 @@ export function registerOAuthRoutes(app: Express) {
         lastSignedIn: new Date(),
       });
 
+      // Get user ID and seed templates if new user
+      const user = await db.getUserByOpenId(userInfo.openId);
+      if (user) {
+        await db.seedBuiltInTemplates(user.id);
+      }
+
       const sessionToken = await sdk.createSessionToken(userInfo.openId, {
         name: userInfo.name || "",
         expiresInMs: ONE_YEAR_MS,

@@ -514,3 +514,57 @@ export async function getJobExecutionHistory(jobId: number, limit: number = 20) 
     return [];
   }
 }
+
+
+/**
+ * Seed built-in templates for a new user
+ */
+export async function seedBuiltInTemplates(userId: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot seed templates: database not available");
+    return;
+  }
+
+  try {
+    // Check if user already has templates
+    const existing = await db
+      .select()
+      .from(exportTemplates)
+      .where(eq(exportTemplates.userId, userId))
+      .limit(1);
+
+    if (existing.length > 0) {
+      // User already has templates, skip seeding
+      return;
+    }
+
+    // Import built-in templates
+    const { BUILT_IN_TEMPLATES } = await import("./lib/builtInTemplates");
+
+    // Create templates for the user
+    for (const template of Object.values(BUILT_IN_TEMPLATES)) {
+      await db.insert(exportTemplates).values({
+        userId,
+        name: template.name,
+        description: template.description,
+        headerText: template.headerText,
+        footerText: template.footerText,
+        includeMetadata: template.includeMetadata ? 1 : 0,
+        includeTableOfContents: template.includeTableOfContents ? 1 : 0,
+        fontSize: template.fontSize,
+        fontFamily: template.fontFamily,
+        lineSpacing: template.lineSpacing,
+        pageMargins: template.pageMargins,
+        colorScheme: template.colorScheme,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+
+    console.log(`[Database] Seeded ${Object.keys(BUILT_IN_TEMPLATES).length} built-in templates for user ${userId}`);
+  } catch (error) {
+    console.error("[Database] Failed to seed templates:", error);
+    // Don't throw - seeding failure shouldn't block user creation
+  }
+}

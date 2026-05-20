@@ -166,7 +166,7 @@
 - [x] Build UI to display and apply built-in templates
 - [x] Allow users to duplicate built-in templates for customization
 - [x] Add template preview/comparison view
-- [ ] Seed templates on first user login (optional enhancement)
+- [x] Seed templates automatically on first user login via OAuth callback
 
 ## Phase 18: Scheduled Batch Regeneration
 - [x] Create database schema for scheduled jobs (scheduleId, userId, generationIds, parameters, cronExpression, nextRun, lastRun, status)
@@ -174,4 +174,6 @@
 - [x] Add email notification system for job completion/failure (configured in schema)
 - [x] Create job history and execution logs (jobExecutionHistory table)
 - [x] Build management UI to view, pause, resume, and delete scheduled jobs
-- [ ] Implement job execution engine with error handling and retry logic (backend service)
+- [x] Implement job execution engine with error handling and retry logic (backend service)
+- [x] Wire job scheduler into server startup with graceful shutdown
+- [x] Add 1-minute polling interval for checking and executing due jobs
