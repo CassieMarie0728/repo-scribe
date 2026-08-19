@@ -52,7 +52,11 @@ async function startServer() {
         redirectUri.searchParams.set("token", token);
         return res.redirect(302, redirectUri.toString());
       } catch {
-        const origin = `${req.protocol}://${req.get("host")}`;
+        const forwardedHost = req.get("x-forwarded-host")?.split(",")[0]?.trim();
+        const forwardedProtocol = req.get("x-forwarded-proto")?.split(",")[0]?.trim();
+        const origin = forwardedHost && forwardedHost.endsWith(".manus.space")
+          ? `${forwardedProtocol === "http" ? "http" : "https"}://${forwardedHost}`
+          : `${req.protocol}://${req.get("host")}`;
         const callback = new URL("/api/mobile/auth/callback", origin);
         callback.searchParams.set("redirect_uri", redirectUri.toString());
         const state = Buffer.from(callback.toString()).toString("base64");

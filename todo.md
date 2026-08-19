@@ -199,7 +199,7 @@
 - [x] Implement secure session handling, API error states, native sharing, file exports, haptics, and explicit accessibility support
 - [x] Connect history, regeneration, templates, and schedules to the same authenticated backend data
 - [x] Configure Android identity, icon, branded splash, deep-link permissions, and release metadata
-- [x] Validate Expo build configuration, typechecks, unit tests, and Router/NativeWind bundle output
+- [x] Validate Expo build configuration, typechecks, unit tests, and Router/NativeWind web and Android bundle output
 - [ ] Install the Android build on a device or emulator and verify mobile OAuth, generation, regeneration, and native share flows against the published app
 
 ## Phase 22: Production Hardening Remediation
