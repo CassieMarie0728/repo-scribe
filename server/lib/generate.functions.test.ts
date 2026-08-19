@@ -12,7 +12,7 @@ describe("fetchRepoMetadata", () => {
     expect(metadata.name).toBe("next.js");
     expect(metadata.description).toBeDefined();
     expect(typeof metadata.description).toBe("string");
-  });
+  }, 15_000);
 
   it("should throw error for invalid repository URL", async () => {
     const invalidUrl = "https://github.com/invalid-url-format";

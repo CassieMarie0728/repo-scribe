@@ -1,6 +1,8 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { User } from "../../drizzle/schema";
+import { getUserById } from "../db";
 import { sdk } from "./sdk";
+import { getMobileBearerToken, verifyMobileAccessToken } from "./mobileAuth";
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
@@ -16,8 +18,9 @@ export async function createContext(
   try {
     user = await sdk.authenticateRequest(opts.req);
   } catch (error) {
-    // Authentication is optional for public procedures.
-    user = null;
+    const mobileToken = getMobileBearerToken(opts.req);
+    const mobileUserId = mobileToken ? await verifyMobileAccessToken(mobileToken) : null;
+    user = mobileUserId ? (await getUserById(mobileUserId) ?? null) : null;
   }
 
   return {

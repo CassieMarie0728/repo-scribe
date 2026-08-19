@@ -194,12 +194,13 @@
 - [ ] Verify SEO, sharing metadata, legal notice visibility, mobile responsiveness, and navigation end to end
 
 ## Phase 21: Native Android Companion App
-- [ ] Define secure mobile-to-web service contracts and authentication/deep-link flow
-- [ ] Build branded Android navigation and native screens for home, document generation, history, document editing, exports, and settings
-- [ ] Implement secure session handling, API error states, native sharing, file exports, haptics, and accessibility support
-- [ ] Connect history, regeneration, templates, and schedules to the same authenticated backend data
-- [ ] Configure Android identity, icon, splash, notification permissions, and release metadata
-- [ ] Validate Android builds, core flows, list performance, native share/export behavior, and release readiness
+- [x] Define secure mobile-to-web service contracts and authentication/deep-link flow
+- [x] Build branded Android navigation and native screens for home, document generation, history, document editing, exports, and settings
+- [x] Implement secure session handling, API error states, native sharing, file exports, haptics, and explicit accessibility support
+- [x] Connect history, regeneration, templates, and schedules to the same authenticated backend data
+- [x] Configure Android identity, icon, branded splash, deep-link permissions, and release metadata
+- [x] Validate Expo build configuration, typechecks, unit tests, and Router/NativeWind bundle output
+- [ ] Install the Android build on a device or emulator and verify mobile OAuth, generation, regeneration, and native share flows against the published app
 
 ## Phase 22: Production Hardening Remediation
 - [x] Replace race-prone insert lookups and full-table generation filtering with deterministic, indexed database operations

@@ -12,6 +12,9 @@ import { sdk } from "./sdk";
 import { claimScheduledJobExecution, getScheduledJobByCronTaskUid } from "../db";
 import { executeScheduledJob } from "../lib/jobExecutor";
 import { getCurrentHeartbeatSlot } from "../lib/schedule";
+import { ENV } from "./env";
+import { issueMobileAccessToken, requireMobileRedirectUri } from "./mobileAuth";
+import { getUserByOpenId, seedBuiltInTemplates, upsertUser } from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -40,6 +43,58 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+  app.get("/api/mobile/auth", async (req, res) => {
+    try {
+      const redirectUri = requireMobileRedirectUri(req.query.redirect_uri);
+      try {
+        const signedInUser = await sdk.authenticateRequest(req);
+        const token = await issueMobileAccessToken(signedInUser.id, signedInUser.openId);
+        redirectUri.searchParams.set("token", token);
+        return res.redirect(302, redirectUri.toString());
+      } catch {
+        const origin = `${req.protocol}://${req.get("host")}`;
+        const callback = new URL("/api/mobile/auth/callback", origin);
+        callback.searchParams.set("redirect_uri", redirectUri.toString());
+        const state = Buffer.from(callback.toString()).toString("base64");
+        const login = new URL("/app-auth", ENV.oAuthServerUrl);
+        login.searchParams.set("appId", ENV.appId);
+        login.searchParams.set("redirectUri", callback.toString());
+        login.searchParams.set("state", state);
+        login.searchParams.set("type", "signIn");
+        return res.redirect(302, login.toString());
+      }
+    } catch (error) {
+      return res.status(400).json({ error: error instanceof Error ? error.message : "Mobile authentication failed" });
+    }
+  });
+  app.get("/api/mobile/auth/callback", async (req, res) => {
+    try {
+      const code = typeof req.query.code === "string" ? req.query.code : "";
+      const state = typeof req.query.state === "string" ? req.query.state : "";
+      const redirectUri = requireMobileRedirectUri(req.query.redirect_uri);
+      if (!code || !state) return res.status(400).json({ error: "code and state are required" });
+
+      const tokenResponse = await sdk.exchangeCodeForToken(code, state);
+      const userInfo = await sdk.getUserInfo(tokenResponse.accessToken);
+      if (!userInfo.openId) return res.status(400).json({ error: "Identity provider did not return a user" });
+      await upsertUser({
+        openId: userInfo.openId,
+        name: userInfo.name || null,
+        email: userInfo.email ?? null,
+        loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
+        lastSignedIn: new Date(),
+      });
+      const user = await getUserByOpenId(userInfo.openId);
+      if (!user) return res.status(500).json({ error: "Could not provision the mobile user" });
+      await seedBuiltInTemplates(user.id);
+      const token = await issueMobileAccessToken(user.id, user.openId);
+      redirectUri.searchParams.set("token", token);
+      return res.redirect(302, redirectUri.toString());
+    } catch (error) {
+      console.error("[Mobile auth] Callback failed", error);
+      return res.status(500).json({ error: "Mobile sign-in failed" });
+    }
+  });
   app.post("/api/scheduled/regenerate", async (req, res) => {
     let taskUid: string | undefined;
     try {
