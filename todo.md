@@ -177,3 +177,36 @@
 - [x] Implement job execution engine with error handling and retry logic (backend service)
 - [x] Wire job scheduler into server startup with graceful shutdown
 - [x] Add 1-minute polling interval for checking and executing due jobs
+
+## Phase 19: Full Product Audit and Web Hardening
+- [ ] Perform an evidence-based audit of all web features, routes, server procedures, schemas, scheduled workflows, and release claims
+- [ ] Publish an audit report with prioritized defects, risks, remediation decisions, and verification evidence
+- [ ] Repair broken scheduled-job creation, target selection, parameter capture, and notification delivery
+- [ ] Reconcile template-library, template-manager, and batch-export workflows with persisted data and document exports
+- [ ] Correct generation persistence, authorization boundaries, bulk-query behavior, and database indexes
+- [ ] Add request validation, rate limiting, safe error contracts, and server-side audit logging
+- [ ] Add realistic integration tests for generation, exports, templates, schedules, and access control
+- [ ] Run responsive, accessibility, performance, and browser-console quality checks
+
+## Phase 20: Public Website and Brand Integration
+- [ ] Integrate the generated typewriter icon, banner, favicon, metadata, and social-preview images into the public site
+- [ ] Refine public landing-page messaging, onboarding, and conversion paths for solo developers and possible future public launch
+- [ ] Verify SEO, sharing metadata, legal notice visibility, mobile responsiveness, and navigation end to end
+
+## Phase 21: Native Android Companion App
+- [ ] Define secure mobile-to-web service contracts and authentication/deep-link flow
+- [ ] Build branded Android navigation and native screens for home, document generation, history, document editing, exports, and settings
+- [ ] Implement secure session handling, API error states, native sharing, file exports, haptics, and accessibility support
+- [ ] Connect history, regeneration, templates, and schedules to the same authenticated backend data
+- [ ] Configure Android identity, icon, splash, notification permissions, and release metadata
+- [ ] Validate Android builds, core flows, list performance, native share/export behavior, and release readiness
+
+## Phase 22: Production Hardening Remediation
+- [x] Replace race-prone insert lookups and full-table generation filtering with deterministic, indexed database operations
+- [x] Add schema indexes and a durable scheduler task identifier with migration verification
+- [x] Repair scheduled-job validation, lifecycle semantics, and execution idempotency safeguards
+- [x] Replace volatile in-process scheduling with a deployed platform-managed callback workflow
+- [x] Repair Settings template persistence and scheduled-job target/parameter selection
+- [x] Apply default export templates consistently to single and batch exports while removing browser-only export dependencies
+- [x] Expand test coverage for the audited data, schedule, export-template, and HTML-safety failure modes
+- [ ] Publish the hardened web app and verify the live Heartbeat create, pause, resume, delete, and callback execution flows

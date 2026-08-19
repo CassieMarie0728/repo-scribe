@@ -28,9 +28,14 @@ interface Template {
   name: string;
   description?: string;
   isDefault: number;
+  headerText?: string;
+  footerText?: string;
+  includeMetadata: number;
+  includeTableOfContents: number;
   fontSize: string;
   fontFamily: string;
   lineSpacing: string;
+  pageMargins?: string;
   colorScheme: string;
 }
 
@@ -108,14 +113,14 @@ export function TemplateManager() {
     setFormData({
       name: template.name,
       description: template.description || "",
-      headerText: "",
-      footerText: "",
-      includeMetadata: true,
-      includeTableOfContents: false,
+      headerText: template.headerText || "",
+      footerText: template.footerText || "",
+      includeMetadata: template.includeMetadata === 1,
+      includeTableOfContents: template.includeTableOfContents === 1,
       fontSize: (template.fontSize || "normal") as any,
       fontFamily: (template.fontFamily || "sans-serif") as any,
       lineSpacing: (template.lineSpacing || "1.5") as any,
-      pageMargins: "1in",
+      pageMargins: template.pageMargins || "1in",
       colorScheme: (template.colorScheme || "default") as any,
     });
     setIsOpen(true);

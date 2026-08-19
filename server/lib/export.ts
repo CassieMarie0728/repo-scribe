@@ -1,7 +1,19 @@
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
-import { PDFDocument, rgb } from "pdf-lib";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
 export type ExportFormat = "md" | "txt" | "pdf" | "docx" | "html";
+
+export type ExportTemplateOptions = {
+  headerText?: string | null;
+  footerText?: string | null;
+  includeMetadata?: number | boolean | null;
+  includeTableOfContents?: number | boolean | null;
+  fontSize?: string | null;
+  fontFamily?: string | null;
+  lineSpacing?: string | null;
+  pageMargins?: string | null;
+  colorScheme?: string | null;
+};
 
 interface ExportOptions {
   content: string;
@@ -10,21 +22,118 @@ interface ExportOptions {
   docType?: string;
   repoUrl?: string;
   generatedAt?: Date;
+  template?: ExportTemplateOptions;
+}
+
+function isTemplateFlagEnabled(value: number | boolean | null | undefined, fallback = true): boolean {
+  if (value === null || value === undefined) return fallback;
+  return value === true || value === 1;
+}
+
+function getTemplatedContent(options: ExportOptions): string {
+  const sourceContent = isTemplateFlagEnabled(options.template?.includeMetadata)
+    ? options.content.trim()
+    : options.content.replace(/^<!--[\s\S]*?-->\s*/, "").trim();
+  const header = options.template?.headerText?.trim();
+  const footer = options.template?.footerText?.trim();
+  const tableOfContents = isTemplateFlagEnabled(options.template?.includeTableOfContents, false)
+    ? buildMarkdownTableOfContents(sourceContent)
+    : "";
+  return [header, tableOfContents, sourceContent, footer].filter(Boolean).join("\n\n");
+}
+
+function buildMarkdownTableOfContents(content: string): string {
+  const entries = content
+    .split("\n")
+    .map((line) => line.match(/^(#{1,3})\s+(.+?)\s*$/))
+    .filter((match): match is RegExpMatchArray => Boolean(match))
+    .map((match) => {
+      const level = match[1].length;
+      const title = match[2].replace(/[*_`]/g, "").trim();
+      const slug = title
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .trim()
+        .replace(/\s+/g, "-");
+      return `${"  ".repeat(Math.max(0, level - 1))}- [${title}](#${slug})`;
+    });
+
+  return entries.length > 0 ? `## Table of Contents\n\n${entries.join("\n")}` : "";
+}
+
+function getTemplateStyle(template?: ExportTemplateOptions) {
+  const fontFamilies: Record<string, string> = {
+    "sans-serif": "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    serif: "Georgia, 'Times New Roman', serif",
+    monospace: "'Courier New', monospace",
+  };
+  const headingColors: Record<string, string> = {
+    default: "#8b4513",
+    professional: "#1f2937",
+    minimal: "#333333",
+    vintage: "#981518",
+  };
+  const fontSizes: Record<string, string> = { small: "14px", normal: "16px", large: "18px" };
+  const requestedMargin = template?.pageMargins?.replace(/[^0-9.a-z%\s.]/gi, "").trim();
+
+  return {
+    fontFamily: fontFamilies[template?.fontFamily ?? ""] ?? fontFamilies["sans-serif"],
+    fontSize: fontSizes[template?.fontSize ?? ""] ?? fontSizes.normal,
+    lineSpacing: template?.lineSpacing && ["1", "1.5", "2"].includes(template.lineSpacing)
+      ? template.lineSpacing
+      : "1.6",
+    margin: requestedMargin || "20px",
+    headingColor: headingColors[template?.colorScheme ?? ""] ?? headingColors.default,
+  };
+}
+
+function getTemplateTypography(template?: ExportTemplateOptions) {
+  const pdfFonts: Record<string, StandardFonts> = {
+    serif: StandardFonts.TimesRoman,
+    monospace: StandardFonts.Courier,
+    "sans-serif": StandardFonts.Helvetica,
+  };
+  const docxFonts: Record<string, string> = {
+    serif: "Times New Roman",
+    monospace: "Courier New",
+    "sans-serif": "Arial",
+  };
+  const fontSizes: Record<string, number> = { small: 10, normal: 11, large: 13 };
+  const lineSpacing: Record<string, number> = { "1": 240, "1.5": 360, "2": 480 };
+  const colors: Record<string, [number, number, number]> = {
+    default: [0.55, 0.27, 0.07],
+    professional: [0.12, 0.16, 0.22],
+    minimal: [0.2, 0.2, 0.2],
+    vintage: [0.596, 0.082, 0.094],
+  };
+  const marginInches = Number.parseFloat(template?.pageMargins ?? "1") || 1;
+  const bodySize = fontSizes[template?.fontSize ?? ""] ?? 11;
+
+  return {
+    pdfFont: pdfFonts[template?.fontFamily ?? ""] ?? StandardFonts.Helvetica,
+    docxFont: docxFonts[template?.fontFamily ?? ""] ?? "Arial",
+    bodySize,
+    docxSize: bodySize * 2,
+    docxLineSpacing: lineSpacing[template?.lineSpacing ?? ""] ?? 360,
+    lineHeight: bodySize * (template?.lineSpacing === "2" ? 2 : template?.lineSpacing === "1" ? 1 : 1.5),
+    pageMarginPoints: Math.max(24, Math.min(144, marginInches * 72)),
+    pageMarginTwips: Math.max(720, Math.min(2880, Math.round(marginInches * 1440))),
+    headingColor: colors[template?.colorScheme ?? ""] ?? colors.default,
+  };
 }
 
 /**
  * Export document as Markdown
  */
 export function exportAsMarkdown(options: ExportOptions): Buffer {
-  const { content } = options;
-  return Buffer.from(content, "utf-8");
+  return Buffer.from(getTemplatedContent(options), "utf-8");
 }
 
 /**
  * Export document as plain text
  */
 export function exportAsText(options: ExportOptions): Buffer {
-  const { content } = options;
+  const content = getTemplatedContent(options);
   // Remove markdown formatting for plain text
   let text = content
     .replace(/^#+\s+/gm, "") // Remove headings
@@ -41,10 +150,12 @@ export function exportAsText(options: ExportOptions): Buffer {
  * Export document as HTML
  */
 export function exportAsHTML(options: ExportOptions): Buffer {
-  const { content, title, docType, repoUrl, generatedAt } = options;
+  const { title, docType, repoUrl, generatedAt, template } = options;
+  const content = getTemplatedContent(options);
+  const templateStyle = getTemplateStyle(template);
 
   // Convert markdown to HTML (basic implementation)
-  let html = content
+  let html = escapeHtml(content)
     .replace(/^### (.*?)$/gm, "<h3>$1</h3>")
     .replace(/^## (.*?)$/gm, "<h2>$1</h2>")
     .replace(/^# (.*?)$/gm, "<h1>$1</h1>")
@@ -57,14 +168,14 @@ export function exportAsHTML(options: ExportOptions): Buffer {
     .replace(/\n\n/g, "</p><p>")
     .replace(/\n/g, "<br>");
 
-  const metadata = [
-    title ? `<p><strong>Document Type:</strong> ${escapeHtml(title)}</p>` : "",
-    docType ? `<p><strong>Generated for:</strong> ${escapeHtml(docType)}</p>` : "",
-    repoUrl ? `<p><strong>Repository:</strong> <a href="${escapeHtml(repoUrl)}">${escapeHtml(repoUrl)}</a></p>` : "",
-    generatedAt ? `<p><strong>Generated:</strong> ${generatedAt.toLocaleString()}</p>` : "",
-  ]
-    .filter(Boolean)
-    .join("");
+  const metadata = isTemplateFlagEnabled(template?.includeMetadata)
+    ? [
+        title ? `<p><strong>Document Type:</strong> ${escapeHtml(title)}</p>` : "",
+        docType ? `<p><strong>Generated for:</strong> ${escapeHtml(docType)}</p>` : "",
+        repoUrl ? `<p><strong>Repository:</strong> <a href="${escapeHtml(repoUrl)}">${escapeHtml(repoUrl)}</a></p>` : "",
+        generatedAt ? `<p><strong>Generated:</strong> ${generatedAt.toLocaleString()}</p>` : "",
+      ].filter(Boolean).join("")
+    : "";
 
   const fullHtml = `<!DOCTYPE html>
 <html lang="en">
@@ -74,11 +185,12 @@ export function exportAsHTML(options: ExportOptions): Buffer {
   <title>${escapeHtml(title || "Document")}</title>
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      line-height: 1.6;
+      font-family: ${templateStyle.fontFamily};
+      font-size: ${templateStyle.fontSize};
+      line-height: ${templateStyle.lineSpacing};
       max-width: 900px;
       margin: 0 auto;
-      padding: 20px;
+      padding: ${templateStyle.margin};
       color: #333;
       background: #f9f9f9;
     }
@@ -96,7 +208,7 @@ export function exportAsHTML(options: ExportOptions): Buffer {
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     h1, h2, h3 {
-      color: #8b4513;
+      color: ${templateStyle.headingColor};
       margin-top: 20px;
     }
     code {
@@ -106,7 +218,7 @@ export function exportAsHTML(options: ExportOptions): Buffer {
       font-family: 'Courier New', monospace;
     }
     a {
-      color: #8b4513;
+      color: ${templateStyle.headingColor};
       text-decoration: none;
     }
     a:hover {
@@ -119,9 +231,7 @@ export function exportAsHTML(options: ExportOptions): Buffer {
   </style>
 </head>
 <body>
-  <div class="metadata">
-    ${metadata}
-  </div>
+  ${metadata ? `<div class="metadata">${metadata}</div>` : ""}
   <div class="content">
     <p>${html}</p>
   </div>
@@ -135,7 +245,9 @@ export function exportAsHTML(options: ExportOptions): Buffer {
  * Export document as DOCX (Word format)
  */
 export async function exportAsDocx(options: ExportOptions): Promise<Buffer> {
-  const { content, title, docType, repoUrl, generatedAt } = options;
+  const { title, docType, repoUrl, generatedAt, template } = options;
+  const content = getTemplatedContent(options);
+  const typography = getTemplateTypography(template);
 
   // Parse markdown into paragraphs
   const lines = content.split("\n");
@@ -151,7 +263,7 @@ export async function exportAsDocx(options: ExportOptions): Promise<Buffer> {
     );
   }
 
-  if (docType || repoUrl || generatedAt) {
+  if (isTemplateFlagEnabled(template?.includeMetadata) && (docType || repoUrl || generatedAt)) {
     const metadataText = [
       docType ? `Document Type: ${docType}` : "",
       repoUrl ? `Repository: ${repoUrl}` : "",
@@ -199,9 +311,26 @@ export async function exportAsDocx(options: ExportOptions): Promise<Buffer> {
   }
 
   const doc = new Document({
+    styles: {
+      default: {
+        document: {
+          run: { font: typography.docxFont, size: typography.docxSize },
+          paragraph: { spacing: { line: typography.docxLineSpacing } },
+        },
+      },
+    },
     sections: [
       {
-        properties: {},
+        properties: {
+          page: {
+            margin: {
+              top: typography.pageMarginTwips,
+              right: typography.pageMarginTwips,
+              bottom: typography.pageMarginTwips,
+              left: typography.pageMarginTwips,
+            },
+          },
+        },
         children: paragraphs,
       },
     ],
@@ -215,41 +344,46 @@ export async function exportAsDocx(options: ExportOptions): Promise<Buffer> {
  * Export document as PDF
  */
 export async function exportAsPDF(options: ExportOptions): Promise<Buffer> {
-  const { content, title, docType, repoUrl, generatedAt } = options;
+  const { title, docType, repoUrl, generatedAt, template } = options;
+  const content = getTemplatedContent(options);
+  const typography = getTemplateTypography(template);
 
   const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([612, 792]); // Letter size
+  let page = pdfDoc.addPage([612, 792]); // Letter size
+  const font = await pdfDoc.embedFont(typography.pdfFont);
   const { height } = page.getSize();
 
-  let yPosition = height - 50;
-  const margin = 50;
-  const maxWidth = 512;
+  let yPosition = height - typography.pageMarginPoints;
+  const margin = typography.pageMarginPoints;
+  const maxWidth = 612 - margin * 2;
 
   // Add title
   if (title) {
     page.drawText(title, {
       x: margin,
       y: yPosition,
-      size: 24,
-      color: rgb(0.55, 0.27, 0.07), // Vintage brown
+      size: typography.bodySize + 13,
+      font,
+      color: rgb(...typography.headingColor),
     });
     yPosition -= 40;
   }
 
   // Add metadata
-  const metadata = [
-    docType ? `Document Type: ${docType}` : "",
-    repoUrl ? `Repository: ${repoUrl}` : "",
-    generatedAt ? `Generated: ${generatedAt.toLocaleString()}` : "",
-  ]
-    .filter(Boolean)
-    .join(" | ");
+  const metadata = isTemplateFlagEnabled(template?.includeMetadata)
+    ? [
+        docType ? `Document Type: ${docType}` : "",
+        repoUrl ? `Repository: ${repoUrl}` : "",
+        generatedAt ? `Generated: ${generatedAt.toLocaleString()}` : "",
+      ].filter(Boolean).join(" | ")
+    : "";
 
   if (metadata) {
     page.drawText(metadata, {
       x: margin,
       y: yPosition,
-      size: 10,
+      size: Math.max(8, typography.bodySize - 1),
+      font,
       color: rgb(0.5, 0.5, 0.5),
     });
     yPosition -= 30;
@@ -260,23 +394,25 @@ export async function exportAsPDF(options: ExportOptions): Promise<Buffer> {
   for (const line of lines) {
     if (yPosition < margin) {
       // Create new page if needed
-      const newPage = pdfDoc.addPage([612, 792]);
+      page = pdfDoc.addPage([612, 792]);
       yPosition = height - margin;
-      newPage.drawText(line, {
+      page.drawText(line, {
         x: margin,
         y: yPosition,
-        size: 11,
+        size: typography.bodySize,
+        font,
         maxWidth,
       });
     } else {
       page.drawText(line, {
         x: margin,
         y: yPosition,
-        size: 11,
+        size: typography.bodySize,
+        font,
         maxWidth,
       });
     }
-    yPosition -= 15;
+    yPosition -= typography.lineHeight;
   }
 
   const pdfBytes = await pdfDoc.save();

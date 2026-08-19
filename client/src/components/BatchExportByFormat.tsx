@@ -23,7 +23,7 @@ import JSZip from "jszip";
 
 interface Generation {
   id: number;
-  repoName: string;
+  repoName?: string | null;
   docType: string;
   content: string;
 }
@@ -75,9 +75,10 @@ export function BatchExportByFormat({
             format,
           });
 
-          const filename = `${gen.repoName || "document"}_${gen.docType}.${getFileExtension(format)}`;
-          const data = Buffer.from(result.data, "base64");
-          zip.file(filename, data);
+          const filename = `${safeFilenamePart(gen.repoName || "document")}_${safeFilenamePart(gen.docType)}.${getFileExtension(format)}`;
+          const binary = atob(result.data);
+          const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+          zip.file(filename, bytes);
         } catch (error) {
           console.error(`Failed to export ${gen.docType}:`, error);
           toast.error(`Failed to export ${gen.docType}`);
@@ -181,4 +182,8 @@ function getFileExtension(format: ExportFormat): string {
     html: "html",
   };
   return extensions[format];
+}
+
+function safeFilenamePart(value: string): string {
+  return value.replace(/[^a-z0-9._-]+/gi, "-").replace(/^-+|-+$/g, "") || "document";
 }

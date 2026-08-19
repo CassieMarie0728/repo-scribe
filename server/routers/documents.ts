@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
 import { generateDocument, fetchRepoMetadata } from "../lib/generate.functions";
-import { getUserGenerations, updateGeneration, getGenerationsByIds } from "../db";
+import { getDefaultTemplate, getUserGenerations, updateGeneration, getGenerationsByIds } from "../db";
 import { exportAsMarkdown, exportAsText, exportAsHTML, exportAsPDF, exportAsDocx, getMimeType, getFileExtension, type ExportFormat } from "../lib/export";
 
 const DOC_TYPES = [
@@ -73,8 +73,8 @@ export const documentsRouter = router({
   updateGeneration: protectedProcedure
     .input(
       z.object({
-        generationId: z.number(),
-        content: z.string(),
+        generationId: z.number().int().positive(),
+        content: z.string().min(1).max(500_000),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -90,7 +90,7 @@ export const documentsRouter = router({
   bulkExport: protectedProcedure
     .input(
       z.object({
-        generationIds: z.array(z.number()),
+        generationIds: z.array(z.number().int().positive()).min(1).max(50),
       })
     )
     .query(async ({ input, ctx }) => {
@@ -112,7 +112,7 @@ export const documentsRouter = router({
   regenerate: protectedProcedure
     .input(
       z.object({
-        generationId: z.number(),
+        generationId: z.number().int().positive(),
         docType: z.enum(DOC_TYPES),
         tone: z.enum(TONES),
         length: z.enum(LENGTHS),
@@ -209,7 +209,7 @@ export const documentsRouter = router({
   exportGeneration: protectedProcedure
     .input(
       z.object({
-        generationId: z.number(),
+        generationId: z.number().int().positive(),
         format: z.enum(EXPORT_FORMATS),
       })
     )
@@ -220,6 +220,7 @@ export const documentsRouter = router({
           throw new Error("Generation not found");
         }
 
+        const template = await getDefaultTemplate(ctx.user.id);
         let buffer: Buffer;
         const exportOptions = {
           content: generation.content,
@@ -228,6 +229,7 @@ export const documentsRouter = router({
           docType: generation.docType,
           repoUrl: generation.repoUrl,
           generatedAt: generation.createdAt,
+          template: template ?? undefined,
         };
 
         switch (input.format) {
@@ -264,7 +266,7 @@ export const documentsRouter = router({
   exportBatch: protectedProcedure
     .input(
       z.object({
-        generationIds: z.array(z.number()),
+        generationIds: z.array(z.number().int().positive()).min(1).max(50),
         format: z.enum(EXPORT_FORMATS),
       })
     )
@@ -275,6 +277,7 @@ export const documentsRouter = router({
           throw new Error("No generations found");
         }
 
+        const template = await getDefaultTemplate(ctx.user.id);
         const exports = [];
         for (const generation of generations) {
           const exportOptions = {
@@ -284,6 +287,7 @@ export const documentsRouter = router({
             docType: generation.docType,
             repoUrl: generation.repoUrl,
             generatedAt: generation.createdAt,
+            template: template ?? undefined,
           };
 
           let buffer: Buffer;

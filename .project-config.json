@@ -1,8 +1,8 @@
 {
   "build_command": "pnpm run build",
   "capabilities": [
-    "server",
     "db",
+    "server",
     "user"
   ],
   "dev_command": "pnpm run dev",
@@ -15,10 +15,11 @@
   ],
   "git_remote": {
     "repo_url": "s3://vida-prod-gitrepo/webdev-git/310519663501812446/ZFecqhGeKcso9Cb9Guc5N4",
-    "access_key_id": "ASIAZV3A2ECZO6R6CK5T",
-    "secret_access_key": "VTWg1lH1Jcn2prsny5hY1eFH1osc8PyL0qHxl6is",
-    "session_token": "IQoJb3JpZ2luX2VjELj//////////wEaCXVzLWVhc3QtMSJHMEUCIQCCfa/pnThhmFlx/Vei7QTp3tbSGfeV4PMqhkwwLL7/fgIgIURSJxDiQJnJRCYomeBcKU3hOeVbkCiY7yZU/lgroT8q/wMIgf//////////ARAEGgw2NjUzODYwOTg4NjYiDGPF8G/RIbCaZPbJHirTA61WJaZP2UZMxKcCoCS0f4Nwn9hXbfwpGgKH6eCdC5LULALjHQ2M0fOoyPOYN7XXbn4GDjWY42IUbuRxuzd3zAu31lJqvD1p/E7P3eVsPHX2WxOWYih9V37VtJAmTXwrpRqXq1KHI1sGtbP6FjC/w6qAVrtts2sPAhVVH00Rw1rByOCPifbrAXdqOhAFW8M3jrBtLjLCOAquF1Subfcl0/bgIIio22xX8W9PH9QnM11p2w3PxTPNJuZSHscpF4glAQcfnWldpbN03UwYd75MlRdJCGmI4gj3qnWa9oMZ9ucT9lvTHdGj85/z42recHbIgUoroz7laP9Bk5PEVDlasUUxZHUoA4WevI+vE2xa7NUr+g3bL+c+xy2b2YVkrSx9eLpoisZQHh9BjWBGcs1jv1Lbu9zwGkV31+LPXX4uzMzgLWSn6dWSxTKgd8Dnyr9TUvVWfm5Rwax7hv+HH0a8o+VUZmI7IYlgOi6d6E1zJO72MuGFhGKnS75uHpJjqBiVZbb7PyQjeGM30tCxnHE1GIrVX0MFL98K8rSldjlh4hg7+u8hkez6dXaUMndAzgxAk7Wntb+eB0gxd2rx3BY0eXnpuEp1fTxP73RqsbbCTTNyPvUQMNXWntAGOp0BgpSkFUK4wKF53uwcSVjAxp6PcHOizSCUuvKiit7sDn7igx8qsjJZPjCegl5N2EIQskkkHeK1eDi2LduHZuUdJF+2/ZbKu3AmpLmRpYz4S/MBgrB97UxGAL3NRgEwx39dCA/ZafA6fhCX/rvNEIo3InU/c3lzMx9+wl+Wl1qlXpWghvEDgZn6NmPEt1W9opQ5/4fNWI75Gw0qzL7ObQ==",
-    "expiration": "2026-05-16T11:25:09.000Z"
+    "access_key_id": "ASIAZV3A2ECZEPI65JVF",
+    "secret_access_key": "DYn3p9mt+j3v1hpJo7DBpltKTKq4OY9Nw2SvU1db",
+    "session_token": "IQoJb3JpZ2luX2VjEK7//////////wEaCXVzLWVhc3QtMSJHMEUCIB5GxL7oPfPJDTOVA3JhEfoWvQNNAXG1QvdofpcbcMYaAiEAikLFugBmUBS0S9R9JmdSxL+tGy0Yo/AE8VTD7csBiaAq9gMIdhAEGgw2NjUzODYwOTg4NjYiDPlfJeuMFfZj4ti/MSrTAyVynbJlZP9D/OeZamD4UvvqckO4BNgMrvAw1nMhW8229khio93nxE3cusiGBzCPuj8SfA5On9CMAZxFk7oCko8NPA9hmowDxqRkYxT4WCY48V4HtDJUKZeTl8Ktw+d3R2ABMpKaxLcWp1fP+lHyc7A3tMJ1f40erJp6c+lv4dRK1Rcf9N5AX3POZcq/Qwsz1DhUuxYAOf4ZQelA7kNmtu1vap41rCSHJLDpPtuVm8f1RoJjhVoySccTzwJOjrf3HfLlpiQHu0qk5GrLQIn+soawxO6w//yFGJrFQ1VChWIE8G/ycWELuuLdwTYbgM1HYIY+cH3+SOnSlxw2RRXMeKIGraXfNMfOSNREBgDO1t1/U/knk7F+wnk+Yt0Vqf22hxf6/dU9QKPKWuusS9vRDrEqyeobjFjNxBWPS35NbnAu4U2a5BMm0HO2YZuY+hnJvMFQdkbE2Oi7WuHJ+SlNL8+64tg/3teFq09kVMTUql7JLyUtR/Pyw/BuvWPCvHaeK9GQsadRYHv0Ag/PrABZoZSwrUhHmc1SgSReH8NRERlj3c7xdSTr247PPQttQDJ++qeEsfkXjwGOUc0lesG8fLknbhWG8nUMaogdp8NokBlcSzEZMInUltQGOp0B0F2PU36E9CfJ9KN101tvVAFkCl6k0bjVASCp6rb2GEq6Snt81a6YMp+VIcnvFXY6P1GCxA7dJgMGGzagBlvmmupri8VX0ODH1ZMFxmcHlznUps+9jqsOQVUW4hk4STjNXN0a9qrP1cYiKkEb2ivUY/65N/PQuCOnyDGblHEn1rwWgwo0jcd6tR085wKohw9leQdGiuxVY+mlaLHE0Q==",
+    "expiration": "2026-08-20T01:05:13.000Z",
+    "backend": "GIT_BACKEND_S3"
   },
   "name": "repo-scribe",
   "path": "/home/ubuntu/repo-scribe",

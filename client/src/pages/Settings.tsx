@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
-import TemplateLibrary from "@/components/TemplateLibrary";
+import { TemplateManager } from "@/components/TemplateManager";
 import ScheduledJobsManager from "@/components/ScheduledJobsManager";
 
 export default function Settings() {
@@ -66,7 +66,7 @@ export default function Settings() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <TemplateLibrary />
+                <TemplateManager />
               </CardContent>
             </Card>
           </TabsContent>

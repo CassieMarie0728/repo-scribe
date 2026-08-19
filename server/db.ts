@@ -1,9 +1,32 @@
 import { eq, desc, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import { inArray, isNull, lt, or } from "drizzle-orm";
 import { InsertUser, users, generations, InsertGeneration, exportTemplates, InsertExportTemplate, scheduledJobs, InsertScheduledJob, jobExecutionHistory, InsertJobExecutionHistory } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
+
+/**
+ * Accept only unique, positive, safe integer primary keys before constructing an IN query.
+ */
+export function normalizeGenerationIds(generationIds: number[]): number[] {
+  return Array.from(
+    new Set(generationIds.filter((id) => Number.isSafeInteger(id) && id > 0))
+  );
+}
+
+/**
+ * MySQL returns the generated auto-increment value with the insert result.
+ * Fail loudly rather than guessing which recently-created row belongs to this request.
+ */
+export function getRequiredInsertId(result: unknown, entityName: string): number {
+  const insertResult = Array.isArray(result) ? result[0] : result;
+  const insertId = Number((insertResult as { insertId?: number | bigint } | null)?.insertId ?? 0);
+  if (!Number.isSafeInteger(insertId) || insertId <= 0) {
+    throw new Error(`Database did not return a valid ${entityName} ID`);
+  }
+  return insertId;
+}
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
@@ -98,15 +121,7 @@ export async function saveGeneration(generation: InsertGeneration): Promise<{ id
 
   try {
     const result = await db.insert(generations).values(generation);
-    // Get the last inserted ID
-    const saved = await db
-      .select()
-      .from(generations)
-      .where(eq(generations.userId, generation.userId))
-      .orderBy(desc(generations.createdAt))
-      .limit(1);
-    
-    return saved.length > 0 ? { id: saved[0].id } : null;
+    return { id: getRequiredInsertId(result, "generation") };
   } catch (error) {
     console.error("[Database] Failed to save generation:", error);
     throw error;
@@ -175,13 +190,20 @@ export async function getGenerationsByIds(generationIds: number[], userId: numbe
   }
 
   try {
+    const ids = normalizeGenerationIds(generationIds);
+    if (ids.length === 0) return [];
+
     const result = await db
       .select()
       .from(generations)
-      .where(eq(generations.userId, userId))
-      .limit(100);
-    
-    return result.filter(g => generationIds.includes(g.id));
+      .where(
+        and(
+          eq(generations.userId, userId),
+          inArray(generations.id, ids)
+        )
+      );
+
+    return result;
   } catch (error) {
     console.error("[Database] Failed to get generations by ids:", error);
     return [];
@@ -241,14 +263,9 @@ export async function createTemplate(template: InsertExportTemplate) {
   }
 
   try {
-    await db.insert(exportTemplates).values(template);
-    const saved = await db
-      .select()
-      .from(exportTemplates)
-      .where(eq(exportTemplates.userId, template.userId))
-      .orderBy(desc(exportTemplates.createdAt))
-      .limit(1);
-    return saved.length > 0 ? saved[0] : undefined;
+    const result = await db.insert(exportTemplates).values(template);
+    const insertId = getRequiredInsertId(result, "export template");
+    return await getTemplateById(insertId, template.userId);
   } catch (error) {
     console.error("[Database] Failed to create template:", error);
     throw error;
@@ -378,14 +395,9 @@ export async function createScheduledJob(job: InsertScheduledJob) {
   }
 
   try {
-    await db.insert(scheduledJobs).values(job);
-    const saved = await db
-      .select()
-      .from(scheduledJobs)
-      .where(eq(scheduledJobs.userId, job.userId))
-      .orderBy(desc(scheduledJobs.createdAt))
-      .limit(1);
-    return saved.length > 0 ? saved[0] : undefined;
+    const result = await db.insert(scheduledJobs).values(job);
+    const insertId = getRequiredInsertId(result, "scheduled job");
+    return await getScheduledJobById(insertId, job.userId);
   } catch (error) {
     console.error("[Database] Failed to create job:", error);
     throw error;
@@ -430,6 +442,55 @@ export async function getScheduledJobById(jobId: number, userId: number) {
     console.error("[Database] Failed to get job:", error);
     return undefined;
   }
+}
+
+/** Resolve a scheduled job from the scheduler-owned task UID, never request-body data. */
+export async function getScheduledJobByCronTaskUid(taskUid: string) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot get scheduled job: database not available");
+    return undefined;
+  }
+
+  try {
+    const result = await db
+      .select()
+      .from(scheduledJobs)
+      .where(eq(scheduledJobs.scheduleCronTaskUid, taskUid))
+      .limit(1);
+    return result.length > 0 ? result[0] : undefined;
+  } catch (error) {
+    console.error("[Database] Failed to get scheduled job by task UID:", error);
+    throw error;
+  }
+}
+
+/**
+ * Atomically reserve one scheduled execution slot. A retry or concurrent delivery
+ * sees zero affected rows once a run has already claimed the same cron slot.
+ */
+export async function claimScheduledJobExecution(
+  taskUid: string,
+  currentSlot: Date,
+  claimedAt: Date
+): Promise<boolean> {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database is unavailable");
+  }
+
+  const result = await db
+    .update(scheduledJobs)
+    .set({ lastRun: claimedAt, updatedAt: claimedAt })
+    .where(
+      and(
+        eq(scheduledJobs.scheduleCronTaskUid, taskUid),
+        eq(scheduledJobs.status, "active"),
+        or(isNull(scheduledJobs.lastRun), lt(scheduledJobs.lastRun, currentSlot))
+      )
+    );
+
+  return Number((result as { affectedRows?: number } | null)?.affectedRows ?? 0) === 1;
 }
 
 export async function updateScheduledJob(

@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
-import { Copy, Download, Trash2, Package, RefreshCw, Zap } from "lucide-react";
+import { Copy, Package, RefreshCw, Zap } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
@@ -11,6 +11,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import RegenerateModal from "@/components/RegenerateModal";
 import BatchRegenerateModal from "@/components/BatchRegenerateModal";
+import { BatchExportByFormat } from "@/components/BatchExportByFormat";
+import ExportMenu from "@/components/ExportMenu";
 
 export default function History() {
   const { user } = useAuth();
@@ -19,7 +21,7 @@ export default function History() {
     { enabled: !!user }
   );
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [isExporting, setIsExporting] = useState(false);
+  const [batchExportOpen, setBatchExportOpen] = useState(false);
   const [regenerateOpen, setRegenerateOpen] = useState(false);
   const [selectedGeneration, setSelectedGeneration] = useState<any>(null);
   const [batchRegenerateOpen, setBatchRegenerateOpen] = useState(false);
@@ -31,18 +33,6 @@ export default function History() {
     } catch {
       toast.error("Failed to copy");
     }
-  };
-
-  const handleDownload = (content: string, docType: string, format: "md" | "txt") => {
-    const element = document.createElement("a");
-    const sanitizedType = docType.replace(/_/g, "-").toLowerCase();
-    const file = new Blob([content], { type: "text/plain" });
-    element.href = URL.createObjectURL(file);
-    element.download = `${sanitizedType}.${format}`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-    toast.success(`Downloaded as .${format}`);
   };
 
   const toggleSelection = (id: number) => {
@@ -60,43 +50,6 @@ export default function History() {
       setSelectedIds(new Set());
     } else {
       setSelectedIds(new Set(generations.map(g => g.id)));
-    }
-  };
-
-  const handleBulkExport = async () => {
-    if (selectedIds.size === 0) {
-      toast.error("Please select at least one document");
-      return;
-    }
-
-    setIsExporting(true);
-    try {
-      // Dynamically import JSZip
-      const JSZip = (await import("jszip")).default;
-      const zip = new JSZip();
-
-      const selectedGenerations = generations.filter(g => selectedIds.has(g.id));
-      
-      selectedGenerations.forEach((gen) => {
-        const sanitizedType = gen.docType.replace(/_/g, "-").toLowerCase();
-        const fileName = `${sanitizedType}-${new Date(gen.createdAt).toISOString().split('T')[0]}.md`;
-        zip.file(fileName, gen.content);
-      });
-
-      const blob = await zip.generateAsync({ type: "blob" });
-      const element = document.createElement("a");
-      element.href = URL.createObjectURL(blob);
-      element.download = `repo-scribe-export-${new Date().toISOString().split('T')[0]}.zip`;
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
-
-      toast.success(`Exported ${selectedIds.size} document(s) as ZIP`);
-      setSelectedIds(new Set());
-    } catch (error: any) {
-      toast.error(error.message || "Failed to export documents");
-    } finally {
-      setIsExporting(false);
     }
   };
 
@@ -191,12 +144,11 @@ export default function History() {
                       Batch Regenerate
                     </Button>
                     <Button
-                      onClick={handleBulkExport}
-                      disabled={isExporting}
+                      onClick={() => setBatchExportOpen(true)}
                       className="flex items-center gap-2 bg-accent text-accent-foreground hover:opacity-90"
                     >
                       <Package className="w-4 h-4" />
-                      {isExporting ? "Exporting..." : `Export ${selectedIds.size} as ZIP`}
+                      Export ${selectedIds.size} as ZIP
                     </Button>
                   </div>
                 )}
@@ -243,24 +195,7 @@ export default function History() {
                     <Copy className="w-4 h-4" />
                     Copy
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDownload(gen.content, gen.docType, "md")}
-                    className="gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    .md
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDownload(gen.content, gen.docType, "txt")}
-                    className="gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    .txt
-                  </Button>
+                  <ExportMenu generationId={gen.id} docType={gen.docType.replace(/_/g, "-").toLowerCase()} />
                   <Button
                     size="sm"
                     variant="outline"
@@ -297,6 +232,12 @@ export default function History() {
           setSelectedIds(new Set());
           setBatchRegenerateOpen(false);
         }}
+      />
+      <BatchExportByFormat
+        isOpen={batchExportOpen}
+        onClose={() => setBatchExportOpen(false)}
+        selectedIds={Array.from(selectedIds)}
+        generations={generations}
       />
       <Footer />
     </>

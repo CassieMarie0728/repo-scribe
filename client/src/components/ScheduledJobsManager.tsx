@@ -1,408 +1,265 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Clock, Play, Pause, Trash2, Plus } from "lucide-react";
-import { toast } from "sonner";
-import { trpc } from "@/lib/trpc";
+import { Badge } from "@/components/ui/badge";
+import { Calendar, Clock, Pause, Play, Plus, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
+
+const DOC_TYPES = [
+  "README",
+  "LICENSE",
+  "CODE_OF_CONDUCT",
+  "CONTRIBUTING",
+  "SECURITY",
+  "PRIVACY",
+  "TERMS_OF_SERVICE",
+] as const;
+const TONES = ["Formal", "Professional", "Friendly", "Casual", "Laid-back", "Deadpool-cool"] as const;
+const LENGTHS = ["short", "medium", "long"] as const;
+const CRON_PRESETS = [
+  { label: "Daily at midnight UTC", value: "0 0 0 * * *" },
+  { label: "Daily at 9:00 UTC", value: "0 0 9 * * *" },
+  { label: "Weekly on Monday at midnight UTC", value: "0 0 0 * * 1" },
+  { label: "Weekly on Sunday at midnight UTC", value: "0 0 0 * * 0" },
+  { label: "Weekdays at 9:00 UTC", value: "0 0 9 * * 1-5" },
+  { label: "Monthly on the 1st at midnight UTC", value: "0 0 0 1 * *" },
+  { label: "Every 6 hours", value: "0 0 */6 * * *" },
+  { label: "Every 12 hours", value: "0 0 */12 * * *" },
+] as const;
+
+type JobStatus = "active" | "paused" | "completed" | "failed";
 
 interface ScheduledJob {
   id: number;
   name: string;
-  description?: string;
+  description?: string | null;
+  generationIds: string;
+  docType: string;
+  tone: string;
+  length: string;
   cronExpression: string;
-  status: "active" | "paused" | "completed" | "failed";
-  nextRun?: Date;
-  lastRun?: Date;
+  scheduleCronTaskUid?: string | null;
+  status: JobStatus;
+  nextRun?: Date | null;
+  lastRun?: Date | null;
   executionCount: number;
-  createdAt: Date;
 }
 
-const CRON_PRESETS = [
-  { label: "Daily at midnight", value: "0 0 * * *" },
-  { label: "Daily at 9 AM", value: "0 9 * * *" },
-  { label: "Weekly on Monday", value: "0 0 * * 1" },
-  { label: "Weekly on Sunday", value: "0 0 * * 0" },
-  { label: "Every Monday-Friday", value: "0 0 * * 1-5" },
-  { label: "Monthly on 1st", value: "0 0 1 * *" },
-  { label: "Every 6 hours", value: "0 */6 * * *" },
-  { label: "Every 12 hours", value: "0 */12 * * *" },
-];
+const statusClass: Record<JobStatus, string> = {
+  active: "border-emerald-800/20 bg-emerald-100 text-emerald-900",
+  paused: "border-amber-800/20 bg-amber-100 text-amber-900",
+  failed: "border-[#981518]/20 bg-red-100 text-[#981518]",
+  completed: "border-stone-700/20 bg-stone-100 text-stone-800",
+};
+
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
 
 export default function ScheduledJobsManager() {
-  const [jobs, setJobs] = useState<ScheduledJob[]>([]);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<ScheduledJob | null>(null);
-  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
-
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    cronExpression: "0 0 * * 0",
-    notifyOnSuccess: true,
-    notifyOnFailure: true,
-  });
-
-  const listQuery = trpc.scheduledJobs.list.useQuery();
+  const utils = trpc.useUtils();
+  const jobsQuery = trpc.scheduledJobs.list.useQuery();
+  const historyQuery = trpc.documents.list.useQuery();
   const createMutation = trpc.scheduledJobs.create.useMutation();
   const pauseMutation = trpc.scheduledJobs.pause.useMutation();
   const resumeMutation = trpc.scheduledJobs.resume.useMutation();
   const deleteMutation = trpc.scheduledJobs.delete.useMutation();
 
-  const handleCreate = async () => {
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    cronExpression: "0 0 0 * * 0",
+    docType: "README" as (typeof DOC_TYPES)[number],
+    tone: "Professional" as (typeof TONES)[number],
+    length: "medium" as (typeof LENGTHS)[number],
+  });
+
+  const history = historyQuery.data ?? [];
+  const selectedCount = selectedIds.size;
+  const selectedHistory = useMemo(
+    () => history.filter((generation) => selectedIds.has(generation.id)),
+    [history, selectedIds]
+  );
+
+  const resetCreateForm = () => {
+    setFormData({
+      name: "",
+      description: "",
+      cronExpression: "0 0 0 * * 0",
+      docType: "README",
+      tone: "Professional",
+      length: "medium",
+    });
+    setSelectedIds(new Set());
+  };
+
+  const toggleGeneration = (generationId: number) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(generationId)) next.delete(generationId);
+      else if (next.size >= 50) {
+        toast.error("A scheduled regeneration can target at most 50 History items.");
+        return current;
+      } else next.add(generationId);
+      return next;
+    });
+  };
+
+  const createSchedule = async () => {
     if (!formData.name.trim()) {
-      toast.error("Please enter a job name");
+      toast.error("Give this schedule a name so future-you knows what it does.");
+      return;
+    }
+    if (selectedCount === 0) {
+      toast.error("Select at least one History item to regenerate.");
       return;
     }
 
     try {
       await createMutation.mutateAsync({
         ...formData,
-        generationIds: [], // Will be set from History page
-        docType: "README",
-        tone: "Professional",
-        length: "medium",
+        description: formData.description.trim() || undefined,
+        generationIds: Array.from(selectedIds),
       });
-      toast.success("Scheduled job created");
-      setShowCreateDialog(false);
-      setFormData({
-        name: "",
-        description: "",
-        cronExpression: "0 0 * * 0",
-        notifyOnSuccess: true,
-        notifyOnFailure: true,
-      });
-      listQuery.refetch();
+      await utils.scheduledJobs.list.invalidate();
+      toast.success("Schedule created. Execution results will appear in this app’s job history.");
+      resetCreateForm();
+      setIsCreateOpen(false);
     } catch (error) {
-      toast.error("Failed to create job");
+      toast.error(errorMessage(error, "Could not create the schedule."));
     }
   };
 
-  const handlePause = async (job: ScheduledJob) => {
+  const changeJobStatus = async (job: ScheduledJob, action: "pause" | "resume") => {
     try {
-      await pauseMutation.mutateAsync({ jobId: job.id });
-      toast.success("Job paused");
-      listQuery.refetch();
+      if (action === "pause") await pauseMutation.mutateAsync({ jobId: job.id });
+      else await resumeMutation.mutateAsync({ jobId: job.id });
+      await utils.scheduledJobs.list.invalidate();
+      toast.success(action === "pause" ? "Schedule paused." : "Schedule resumed.");
     } catch (error) {
-      toast.error("Failed to pause job");
+      toast.error(errorMessage(error, `Could not ${action} this schedule.`));
     }
   };
 
-  const handleResume = async (job: ScheduledJob) => {
-    try {
-      await resumeMutation.mutateAsync({ jobId: job.id });
-      toast.success("Job resumed");
-      listQuery.refetch();
-    } catch (error) {
-      toast.error("Failed to resume job");
-    }
-  };
-
-  const handleDelete = async (job: ScheduledJob) => {
-    if (!confirm(`Delete scheduled job "${job.name}"?`)) return;
-
+  const removeJob = async (job: ScheduledJob) => {
+    if (!window.confirm(`Delete scheduled regeneration “${job.name}”? This cannot be undone.`)) return;
     try {
       await deleteMutation.mutateAsync({ jobId: job.id });
-      toast.success("Job deleted");
-      listQuery.refetch();
+      await utils.scheduledJobs.list.invalidate();
+      toast.success("Schedule deleted.");
     } catch (error) {
-      toast.error("Failed to delete job");
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "active":
-        return "bg-green-100 text-green-800";
-      case "paused":
-        return "bg-yellow-100 text-yellow-800";
-      case "failed":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+      toast.error(errorMessage(error, "Could not delete this schedule."));
     }
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Scheduled Regenerations</h2>
-          <p className="text-sm text-muted-foreground">
-            Automatically regenerate documents on a schedule
+          <h2 className="font-display text-2xl text-[#1A1A1A]">Scheduled Regenerations</h2>
+          <p className="mt-1 max-w-2xl text-sm text-stone-600">
+            Choose saved History items, set replacement parameters, and let the live app run the batch on a durable UTC schedule.
           </p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          New Schedule
+        <Button className="bg-[#981518] hover:bg-[#7e1013]" onClick={() => setIsCreateOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" /> New Schedule
         </Button>
       </div>
 
-      {listQuery.data && listQuery.data.length > 0 ? (
-        <div className="grid gap-4">
-          {listQuery.data.map((job: any) => (
-            <Card key={job.id}>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle>{job.name}</CardTitle>
-                    {job.description && (
-                      <CardDescription>{job.description}</CardDescription>
-                    )}
-                  </div>
-                  <Badge className={getStatusColor(job.status)}>
-                    {job.status}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <label className="font-medium">Cron Expression</label>
-                    <p className="text-muted-foreground">{job.cronExpression}</p>
-                  </div>
-                  {job.nextRun && (
-                    <div>
-                      <label className="font-medium flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        Next Run
-                      </label>
-                      <p className="text-muted-foreground">
-                        {format(new Date(job.nextRun), "MMM d, yyyy")}
-                      </p>
-                    </div>
-                  )}
-                  {job.lastRun && (
-                    <div>
-                      <label className="font-medium flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        Last Run
-                      </label>
-                      <p className="text-muted-foreground">
-                        {format(new Date(job.lastRun), "MMM d, yyyy HH:mm")}
-                      </p>
-                    </div>
-                  )}
-                  <div>
-                    <label className="font-medium">Executions</label>
-                    <p className="text-muted-foreground">{job.executionCount}</p>
-                  </div>
-                </div>
+      <div className="rounded-md border border-[#981518]/20 bg-[#981518]/5 p-3 text-sm text-stone-700">
+        <strong className="font-display text-[#981518]">Heads up:</strong> schedules use UTC and require the published app. Every completion or failure is recorded in the job’s execution history; this release does not fake an email channel it cannot honestly deliver through.
+      </div>
 
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setSelectedJob(job);
-                      setShowDetailsDialog(true);
-                    }}
-                  >
-                    Details
-                  </Button>
-                  {job.status === "active" ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handlePause(job)}
-                    >
-                      <Pause className="w-4 h-4 mr-1" />
-                      Pause
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleResume(job)}
-                    >
-                      <Play className="w-4 h-4 mr-1" />
-                      Resume
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => handleDelete(job)}
-                  >
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    Delete
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <Card>
-          <CardContent className="pt-6 text-center">
-            <p className="text-muted-foreground">No scheduled jobs yet</p>
-            <Button
-              variant="outline"
-              className="mt-4"
-              onClick={() => setShowCreateDialog(true)}
-            >
-              Create your first schedule
-            </Button>
+      {jobsQuery.isLoading ? (
+        <p className="text-sm text-stone-600">Loading schedules…</p>
+      ) : (jobsQuery.data ?? []).length === 0 ? (
+        <Card className="border-stone-300 bg-white/70">
+          <CardContent className="py-10 text-center text-sm text-stone-600">
+            No scheduled regenerations yet. Pick some History items and make the paperwork refresh itself for once.
           </CardContent>
         </Card>
+      ) : (
+        <div className="grid gap-4">
+          {(jobsQuery.data ?? []).map((job) => {
+            const typedJob = job as ScheduledJob;
+            const sourceCount = typedJob.generationIds.split(",").filter(Boolean).length;
+            const requiresRecreation = !typedJob.scheduleCronTaskUid;
+            return (
+              <Card key={typedJob.id} className="border-stone-300 bg-white/70">
+                <CardHeader className="pb-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <CardTitle className="font-display text-xl">{typedJob.name}</CardTitle>
+                      {typedJob.description && <CardDescription>{typedJob.description}</CardDescription>}
+                    </div>
+                    <Badge variant="outline" className={statusClass[requiresRecreation ? "failed" : typedJob.status]}>
+                      {requiresRecreation ? "recreate required" : typedJob.status}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                    <div><p className="font-semibold text-stone-800">Targets</p><p className="text-stone-600">{sourceCount} history item{sourceCount === 1 ? "" : "s"}</p></div>
+                    <div><p className="font-semibold text-stone-800">Replacement</p><p className="text-stone-600">{typedJob.docType} · {typedJob.tone} · {typedJob.length}</p></div>
+                    <div><p className="font-semibold text-stone-800">UTC cron</p><p className="font-mono text-xs text-stone-600">{typedJob.cronExpression}</p></div>
+                    <div><p className="font-semibold text-stone-800">Executions</p><p className="text-stone-600">{typedJob.executionCount}</p></div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-stone-600">
+                    {typedJob.nextRun && <span className="inline-flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> Next: {format(new Date(typedJob.nextRun), "PPp")}</span>}
+                    {typedJob.lastRun && <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Last: {format(new Date(typedJob.lastRun), "PPp")}</span>}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {typedJob.status === "active" ? (
+                      <Button size="sm" variant="outline" disabled={pauseMutation.isPending || requiresRecreation} onClick={() => changeJobStatus(typedJob, "pause")}><Pause className="mr-1 h-4 w-4" /> Pause</Button>
+                    ) : (
+                      <Button size="sm" variant="outline" disabled={resumeMutation.isPending || requiresRecreation} onClick={() => changeJobStatus(typedJob, "resume")}><Play className="mr-1 h-4 w-4" /> Resume</Button>
+                    )}
+                    <Button size="sm" variant="destructive" disabled={deleteMutation.isPending} onClick={() => removeJob(typedJob)}><Trash2 className="mr-1 h-4 w-4" /> Delete</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       )}
 
-      {/* Create Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-2xl">
+      <Dialog open={isCreateOpen} onOpenChange={(open) => { setIsCreateOpen(open); if (!open) resetCreateForm(); }}>
+        <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create Scheduled Regeneration</DialogTitle>
-            <DialogDescription>
-              Set up automatic document regeneration on a schedule
-            </DialogDescription>
+            <DialogTitle className="font-display text-2xl">Create Scheduled Regeneration</DialogTitle>
+            <DialogDescription>Choose the source documents and the parameters used for every fresh version.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="name">Job Name</Label>
-              <Input
-                id="name"
-                placeholder="e.g., Weekly Legal Review Update"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-              />
+          <div className="space-y-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2"><Label htmlFor="schedule-name">Schedule name</Label><Input id="schedule-name" value={formData.name} onChange={(event) => setFormData({ ...formData, name: event.target.value })} placeholder="Weekly legal review" /></div>
+              <div className="space-y-2"><Label htmlFor="schedule-cron">Schedule (UTC)</Label><Select value={formData.cronExpression} onValueChange={(cronExpression) => setFormData({ ...formData, cronExpression })}><SelectTrigger id="schedule-cron"><SelectValue /></SelectTrigger><SelectContent>{CRON_PRESETS.map((preset) => <SelectItem key={preset.value} value={preset.value}>{preset.label}</SelectItem>)}</SelectContent></Select></div>
+            </div>
+            <div className="space-y-2"><Label htmlFor="schedule-description">Description <span className="text-stone-500">(optional)</span></Label><Textarea id="schedule-description" value={formData.description} onChange={(event) => setFormData({ ...formData, description: event.target.value })} placeholder="What this schedule exists to keep fresh." /></div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2"><Label>Document type</Label><Select value={formData.docType} onValueChange={(docType) => setFormData({ ...formData, docType: docType as typeof formData.docType })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{DOC_TYPES.map((value) => <SelectItem key={value} value={value}>{value.replaceAll("_", " ")}</SelectItem>)}</SelectContent></Select></div>
+              <div className="space-y-2"><Label>Tone</Label><Select value={formData.tone} onValueChange={(tone) => setFormData({ ...formData, tone: tone as typeof formData.tone })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{TONES.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div>
+              <div className="space-y-2"><Label>Length</Label><Select value={formData.length} onValueChange={(length) => setFormData({ ...formData, length: length as typeof formData.length })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{LENGTHS.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div>
             </div>
 
-            <div>
-              <Label htmlFor="description">Description (optional)</Label>
-              <Textarea
-                id="description"
-                placeholder="Describe what this schedule does"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-                className="h-20"
-              />
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2"><div><Label>History targets</Label><p className="text-xs text-stone-600">{selectedCount} selected of up to 50. Only your own saved generations can be scheduled.</p></div>{history.length > 0 && <Button size="sm" variant="outline" onClick={() => setSelectedIds(selectedCount === Math.min(history.length, 50) ? new Set() : new Set(history.slice(0, 50).map((generation) => generation.id)))}>{selectedCount === Math.min(history.length, 50) ? "Clear all" : "Select up to 50"}</Button>}</div>
+              <div className="max-h-64 space-y-2 overflow-y-auto rounded-md border border-stone-300 bg-stone-50 p-2">
+                {historyQuery.isLoading ? <p className="p-3 text-sm text-stone-600">Loading History…</p> : history.length === 0 ? <p className="p-3 text-sm text-stone-600">No saved generations yet. Create a document first, then schedule it here.</p> : history.map((generation) => <label key={generation.id} className="flex cursor-pointer items-start gap-3 rounded p-2 hover:bg-white"><Checkbox checked={selectedIds.has(generation.id)} onCheckedChange={() => toggleGeneration(generation.id)} /><span className="min-w-0"><span className="block truncate font-medium text-stone-800">{generation.repoName || generation.repoUrl}</span><span className="block text-xs text-stone-600">{generation.docType} · {generation.tone} · {format(new Date(generation.createdAt), "PP")}</span></span></label>)}
+              </div>
+              {selectedHistory.length > 0 && <p className="text-xs text-stone-600">Selected: {selectedHistory.map((generation) => generation.repoName || generation.repoUrl).join(", ")}</p>}
             </div>
-
-            <div>
-              <Label htmlFor="cron">Schedule (Cron Expression)</Label>
-              <Select
-                value={formData.cronExpression}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, cronExpression: value })
-                }
-              >
-                <SelectTrigger id="cron">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CRON_PRESETS.map((preset) => (
-                    <SelectItem key={preset.value} value={preset.value}>
-                      {preset.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                Current: {formData.cronExpression}
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="notifySuccess"
-                  checked={formData.notifyOnSuccess}
-                  onCheckedChange={(checked) =>
-                    setFormData({
-                      ...formData,
-                      notifyOnSuccess: checked as boolean,
-                    })
-                  }
-                />
-                <Label htmlFor="notifySuccess" className="font-normal">
-                  Notify on successful completion
-                </Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="notifyFailure"
-                  checked={formData.notifyOnFailure}
-                  onCheckedChange={(checked) =>
-                    setFormData({
-                      ...formData,
-                      notifyOnFailure: checked as boolean,
-                    })
-                  }
-                />
-                <Label htmlFor="notifyFailure" className="font-normal">
-                  Notify on failure
-                </Label>
-              </div>
-            </div>
-
-            <div className="flex gap-2 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => setShowCreateDialog(false)}
-              >
-                Cancel
-              </Button>
-              <Button onClick={handleCreate} disabled={createMutation.isPending}>
-                Create Schedule
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Details Dialog */}
-      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{selectedJob?.name}</DialogTitle>
-            <DialogDescription>
-              {selectedJob?.description}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Status</Label>
-                <Badge className={getStatusColor(selectedJob?.status || "")}>
-                  {selectedJob?.status}
-                </Badge>
-              </div>
-              <div>
-                <Label>Total Executions</Label>
-                <p className="text-lg font-semibold">
-                  {selectedJob?.executionCount}
-                </p>
-              </div>
-            </div>
-
-            {selectedJob?.lastRun && (
-              <div>
-                <Label>Last Run</Label>
-                <p className="text-sm">
-                  {format(new Date(selectedJob.lastRun), "PPpp")}
-                </p>
-              </div>
-            )}
-
-            {selectedJob?.nextRun && (
-              <div>
-                <Label>Next Scheduled Run</Label>
-                <p className="text-sm">
-                  {format(new Date(selectedJob.nextRun), "PPpp")}
-                </p>
-              </div>
-            )}
+            <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button><Button className="bg-[#981518] hover:bg-[#7e1013]" disabled={createMutation.isPending || selectedCount === 0} onClick={createSchedule}>{createMutation.isPending ? "Creating…" : `Create schedule (${selectedCount})`}</Button></div>
           </div>
         </DialogContent>
       </Dialog>
