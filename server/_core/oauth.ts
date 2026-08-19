@@ -9,6 +9,21 @@ function getQueryParam(req: Request, key: string): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
+/** Parse frontend OAuth state without allowing an external redirect target. */
+export function getSafeReturnPathFromState(state: string): string {
+  try {
+    const decoded = Buffer.from(state, "base64").toString("utf8");
+    const parsed = JSON.parse(decoded) as { returnPath?: unknown };
+    const returnPath = parsed.returnPath;
+    if (typeof returnPath === "string" && returnPath.startsWith("/") && !returnPath.startsWith("//")) {
+      return returnPath;
+    }
+  } catch {
+    // Legacy clients encoded only the callback URL, and malformed state returns home safely.
+  }
+  return "/";
+}
+
 export function registerOAuthRoutes(app: Express) {
   app.get("/api/oauth/callback", async (req: Request, res: Response) => {
     const code = getQueryParam(req, "code");
@@ -50,7 +65,7 @@ export function registerOAuthRoutes(app: Express) {
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-      res.redirect(302, "/");
+      res.redirect(302, getSafeReturnPathFromState(state));
     } catch (error) {
       console.error("[OAuth] Callback failed", error);
       res.status(500).json({ error: "OAuth callback failed" });

@@ -211,3 +211,7 @@
 - [x] Apply default export templates consistently to single and batch exports while removing browser-only export dependencies
 - [x] Expand test coverage for the audited data, schedule, export-template, and HTML-safety failure modes
 - [ ] Publish the hardened web app and verify the live Heartbeat create, pause, resume, delete, and callback execution flows
+
+## Phase 23: Published Authentication Recovery
+- [x] Add a clear sign-in action and safe return path to the unauthenticated Settings screen
+- [ ] Verify the published protected-route recovery flow before resuming authenticated production checks

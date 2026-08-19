@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 import { TemplateManager } from "@/components/TemplateManager";
 import ScheduledJobsManager from "@/components/ScheduledJobsManager";
+import { getLoginUrl } from "@/const";
 
 export default function Settings() {
   const { user, loading } = useAuth();
@@ -33,6 +34,14 @@ export default function Settings() {
             <p className="text-sm text-muted-foreground">
               You need to be logged in to manage templates and scheduled jobs.
             </p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Button onClick={() => { window.location.href = getLoginUrl("/settings"); }}>
+                Sign In to Continue
+              </Button>
+              <Button variant="outline" onClick={() => { window.location.href = "/"; }}>
+                Return Home
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
