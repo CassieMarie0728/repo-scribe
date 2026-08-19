@@ -33,7 +33,13 @@ export default function Header() {
         </button>
 
         {/* Navigation */}
-        <nav className="flex items-center gap-6">
+        <nav className="flex items-center gap-4 sm:gap-6" aria-label="Primary navigation">
+          <button
+            onClick={() => navigate("/")}
+            className="text-xs text-foreground hover:text-accent transition-colors"
+          >
+            Home
+          </button>
           {user ? (
             <div className="flex items-center gap-4">
               <button

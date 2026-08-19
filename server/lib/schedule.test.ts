@@ -4,16 +4,19 @@ import {
   getNextHeartbeatRun,
   hasRunInCurrentHeartbeatSlot,
   isValidHeartbeatCron,
+  normalizeHeartbeatCron,
 } from "./schedule";
 
 describe("platform schedule helpers", () => {
   it("accepts valid six-field UTC schedules with zero seconds", () => {
     expect(isValidHeartbeatCron("0 0 9 * * *")).toBe(true);
     expect(isValidHeartbeatCron("0 0 0 * * 1-5")).toBe(true);
+    expect(isValidHeartbeatCron("0 0 0 * * 0")).toBe(true);
   });
 
-  it("rejects legacy five-field, sub-minute, and malformed schedules", () => {
-    expect(isValidHeartbeatCron("0 9 * * *")).toBe(false);
+  it("normalizes legacy five-field inputs while still rejecting sub-minute and malformed schedules", () => {
+    expect(normalizeHeartbeatCron("0 9 * * *")).toBe("0 0 9 * * *");
+    expect(isValidHeartbeatCron("0 9 * * *")).toBe(true);
     expect(isValidHeartbeatCron("*/30 * * * * *")).toBe(false);
     expect(isValidHeartbeatCron("0 99 9 * * *")).toBe(false);
   });

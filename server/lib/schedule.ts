@@ -1,12 +1,18 @@
-import cronParser from "cron-parser";
+import { CronExpressionParser } from "cron-parser";
 
+/** Convert a legacy minute-based cron into the platform's explicit seconds format. */
+export function normalizeHeartbeatCron(expression: string): string {
+  const fields = expression.trim().split(/\s+/);
+  return fields.length === 5 ? `0 ${fields.join(" ")}` : fields.join(" ");
+}
 /** Platform schedules are six-field UTC crons and intentionally require second zero. */
 export function isValidHeartbeatCron(expression: string): boolean {
-  const fields = expression.trim().split(/\s+/);
+  const normalized = normalizeHeartbeatCron(expression);
+  const fields = normalized.split(/\s+/);
   if (fields.length !== 6 || fields[0] !== "0") return false;
 
   try {
-    cronParser.parse(expression, { tz: "UTC" });
+    CronExpressionParser.parse(normalized, { tz: "UTC" });
     return true;
   } catch {
     return false;
@@ -14,23 +20,25 @@ export function isValidHeartbeatCron(expression: string): boolean {
 }
 
 export function getNextHeartbeatRun(expression: string, fromDate = new Date()): Date {
-  if (!isValidHeartbeatCron(expression)) {
+  const normalized = normalizeHeartbeatCron(expression);
+  if (!isValidHeartbeatCron(normalized)) {
     throw new Error("Schedule must be a valid six-field UTC cron expression with seconds set to 0");
   }
 
-  return cronParser
-    .parse(expression, { currentDate: fromDate, tz: "UTC" })
+  return CronExpressionParser
+    .parse(normalized, { currentDate: fromDate, tz: "UTC" })
     .next()
     .toDate();
 }
 
 export function getCurrentHeartbeatSlot(expression: string, now = new Date()): Date {
-  if (!isValidHeartbeatCron(expression)) {
+  const normalized = normalizeHeartbeatCron(expression);
+  if (!isValidHeartbeatCron(normalized)) {
     throw new Error("Schedule must be a valid six-field UTC cron expression with seconds set to 0");
   }
 
-  return cronParser
-    .parse(expression, { currentDate: new Date(now.getTime() + 1_000), tz: "UTC" })
+  return CronExpressionParser
+    .parse(normalized, { currentDate: new Date(now.getTime() + 1_000), tz: "UTC" })
     .prev()
     .toDate();
 }

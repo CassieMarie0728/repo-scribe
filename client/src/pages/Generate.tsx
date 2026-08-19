@@ -14,7 +14,6 @@ import {
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "sonner";
-import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import LegalDisclaimer from "@/components/LegalDisclaimer";
 import DocumentViewer from "@/components/DocumentViewer";
@@ -98,8 +97,6 @@ export default function Generate() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <Header />
-
       <main className="flex-1">
         <div className="container max-w-5xl mx-auto px-4 py-12">
           {/* Legal Disclaimer */}

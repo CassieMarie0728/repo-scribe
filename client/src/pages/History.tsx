@@ -7,7 +7,6 @@ import { trpc } from "@/lib/trpc";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import RegenerateModal from "@/components/RegenerateModal";
 import BatchRegenerateModal from "@/components/BatchRegenerateModal";
@@ -56,7 +55,6 @@ export default function History() {
   if (!user) {
     return (
       <>
-        <Header />
         <div className="flex-1 min-h-screen flex items-center justify-center">
           <Card className="p-8 max-w-md text-center">
             <h2 className="text-xl font-serif mb-4">Sign In Required</h2>
@@ -73,7 +71,6 @@ export default function History() {
   if (isLoading) {
     return (
       <>
-        <Header />
         <div className="flex-1 min-h-screen flex items-center justify-center">
           <Spinner />
         </div>
@@ -85,7 +82,6 @@ export default function History() {
   if (generations.length === 0) {
     return (
       <>
-        <Header />
         <div className="flex-1 min-h-screen flex items-center justify-center">
           <Card className="p-8 max-w-md text-center">
             <h2 className="text-xl font-serif mb-4">No Generations Yet</h2>
@@ -101,7 +97,6 @@ export default function History() {
 
   return (
     <>
-      <Header />
       <div className="flex-1 min-h-screen bg-background py-12">
         <div className="container max-w-4xl">
           <h1 className="text-4xl font-serif mb-2 text-foreground">Generation History</h1>

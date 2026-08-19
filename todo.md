@@ -214,4 +214,9 @@
 
 ## Phase 23: Published Authentication Recovery
 - [x] Add a clear sign-in action and safe return path to the unauthenticated Settings screen
-- [ ] Verify the published protected-route recovery flow before resuming authenticated production checks
+- [x] Verify the published protected-route recovery flow before resuming authenticated production checks
+
+## Phase 24: Navigation and Live Scheduler Recovery
+- [x] Apply the branded global header consistently across every routed page and add clear home/back escape paths
+- [ ] Correct the production scheduled-job cron validation contract so supported six-field UTC presets can be created
+- [ ] Add regression coverage and complete an authenticated live schedule lifecycle test

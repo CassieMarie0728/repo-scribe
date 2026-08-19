@@ -18,7 +18,7 @@ import {
   normalizeGenerationIds,
   updateScheduledJob,
 } from "../db";
-import { getNextHeartbeatRun, isValidHeartbeatCron } from "../lib/schedule";
+import { getNextHeartbeatRun, isValidHeartbeatCron, normalizeHeartbeatCron } from "../lib/schedule";
 
 const DOC_TYPES = [
   "README",
@@ -36,8 +36,9 @@ const heartbeatCron = z
   .string()
   .trim()
   .max(64)
+  .transform(normalizeHeartbeatCron)
   .refine(isValidHeartbeatCron, {
-    message: "Use a valid six-field UTC cron expression with seconds set to 0.",
+    message: "Use a valid UTC cron expression. Five-field legacy values are normalized with seconds set to 0.",
   });
 
 const scheduleFields = z.object({

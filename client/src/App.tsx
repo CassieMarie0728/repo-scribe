@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import Generate from "./pages/Generate";
 import History from "./pages/History";
 import Settings from "./pages/Settings";
+import Header from "./components/Header";
 
 function Router() {
   return (
@@ -37,7 +38,10 @@ function App() {
       >
         <TooltipProvider>
           <Toaster />
-          <Router />
+          <div className="min-h-screen bg-background text-foreground">
+            <Header />
+            <Router />
+          </div>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
